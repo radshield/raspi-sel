@@ -18,13 +18,15 @@ def init_adc():
 
 def main_loop(adc, filename='currents.log'):
   log = open(filename, 'a')
+  log.write('time,cpu_percent,virtual_memory,adc_voltage')
+  log.flush()
 
   while True:
-    log.write('time,cpu_percent,virtual_memory,adc_voltage')
     log.write('{},{},{},{}'.format(str(datetime.datetime.now()),
                                    psutil.cpu_percent(),
                                    psutil.virtual_memory().percent,
                                    adc.voltage))
+    log.flush()
     time.sleep(1 / data_rate)
 
 if __name__ == '__main__':
