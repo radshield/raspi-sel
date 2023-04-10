@@ -21,10 +21,10 @@ parser.add_argument('input_file', type=str, nargs=1,
 def init_adc():
   i2c = busio.I2C(board.SCL, board.SDA)
   ads = ADS.ADS1115(i2c, data_rate=860, mode=ADS.Mode.SINGLE)
-  return AnalogIn(ads, ADS.P0)
+  return AnalogIn(ads, ADS.P1)
 
 def main_loop(adc, tests, data_rate, out_file='currents.log'):
-  log = open(out_file, 'a')
+  log = open(out_file, 'w')
   log.write('time,cpu_percent,virtual_memory,adc_voltage\n')
   log.flush()
 
@@ -52,4 +52,4 @@ if __name__ == '__main__':
     tests = json.load(f)['runs']
 
   adc = init_adc()
-  main_loop(adc, tests, args.data_rate)
+  main_loop(adc, tests, int(args.data_rate))

@@ -2,23 +2,39 @@
   "runs": [
     {
       "command": "",
-      "run_time": 20
+      "run_time": 2
     },
     {
       "command": "stress-ng --matrix 1 -t 20s",
-      "run_time": 20
+      "run_time": 5
     },
     {
       "command": "stress-ng --matrix 2 -t 20s",
-      "run_time": 20
+      "run_time": 5
     },
     {
       "command": "stress-ng --matrix 3 -t 20s",
-      "run_time": 20
+      "run_time": 5
     },
     {
       "command": "stress-ng --matrix 4 -t 20s",
-      "run_time": 20
+      "run_time": 5
+    },
+    {
+      "command": "stress-ng --matrix 3 -t 20s",
+      "run_time": 5
+    },
+    {
+      "command": "stress-ng --matrix 2 -t 20s",
+      "run_time": 5
+    },
+    {
+      "command": "stress-ng --matrix 1 -t 20s",
+      "run_time": 5
+    },
+    {
+      "command": "",
+      "run_time": 2
     }
   ]
 }
