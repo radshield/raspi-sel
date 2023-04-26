@@ -1,0 +1,114 @@
+{
+  "runs": [
+    {
+      "commands": [],
+      "run_time": 5
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 1 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 500 --memrate-rd 500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 2 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1000 --memrate-rd 1000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 3 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1500 --memrate-rd 1500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 4 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 2000 --memrate-rd 2000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 3 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1500 --memrate-rd 1500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 2 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1000 --memrate-rd 1000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 1 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 500 --memrate-rd 500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [],
+      "run_time": 5
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 1 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 2000 --memrate-rd 2000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 2 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1500 --memrate-rd 1500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 3 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1000 --memrate-rd 1000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 4 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 500 --memrate-rd 500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 3 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1000 --memrate-rd 1000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 2 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 1500 --memrate-rd 1500 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [
+        "stress-ng --matrix 1 -t 3s",
+        "stress-ng --memrate 1 --memrate-wr 2000 --memrate-rd 2000 -t 3s"
+      ],
+      "run_time": 2
+    },
+    {
+      "commands": [],
+      "run_time": 5
+    }
+  ]
+}

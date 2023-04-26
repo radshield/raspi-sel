@@ -27,12 +27,11 @@ def main_loop(adc, tests, data_rate, out_file='currents.log'):
   log = open(out_file, 'w')
   log.write('time,cpu_percent,virtual_memory,adc_voltage\n')
   log.flush()
-
+  
   for test in tests:
-    if len(test['command']) > 0:
-      test_load = subprocess.Popen(test['command'].split(' '))
-    else:
-      test_load = None
+    test_loads = []
+    for command in test['commands']:
+      test_loads.append(subprocess.Popen(command.split(' ')))
 
     for i in range(test['run_time'] * data_rate):
       log.write('{},{},{},{}\n'.format(str(datetime.datetime.now()),
@@ -42,8 +41,9 @@ def main_loop(adc, tests, data_rate, out_file='currents.log'):
       log.flush()
       time.sleep(1 / data_rate)
 
-    if test_load is not None and test_load.poll() is None:
-      test_load.terminate()
+    for test_load in test_loads:
+      if test_load is not None and test_load.poll() is None:
+        test_load.kill()
 
 if __name__ == '__main__':
   args = parser.parse_args()

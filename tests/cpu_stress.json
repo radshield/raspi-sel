@@ -1,71 +1,99 @@
 {
   "runs": [
     {
-      "command": "",
+      "commands": [],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 1 -t 5s",
+      "commands": [
+        "stress-ng --matrix 1 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 2 -t 5s",
+      "commands": [
+        "stress-ng --matrix 2 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 3 -t 5s",
+      "commands": [
+        "stress-ng --matrix 3 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 4 -t 5s",
+      "commands": [
+        "stress-ng --matrix 4 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 3 -t 5s",
+      "commands": [
+        "stress-ng --matrix 3 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 2 -t 5s",
+      "commands": [
+        "stress-ng --matrix 2 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 1 -t 5s",
+      "commands": [
+        "stress-ng --matrix 1 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "",
+      "commands": [],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 1 -t 5s",
+      "commands": [
+        "stress-ng --matrix 1 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 2 -t 5s",
+      "commands": [
+        "stress-ng --matrix 2 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 3 -t 5s",
+      "commands": [
+        "stress-ng --matrix 3 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 4 -t 5s",
+      "commands": [
+        "stress-ng --matrix 4 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 3 -t 5s",
+      "commands": [
+        "stress-ng --matrix 3 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 2 -t 5s",
+      "commands": [
+        "stress-ng --matrix 2 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "stress-ng --matrix 1 -t 5s",
+      "commands": [
+        "stress-ng --matrix 1 -t 5s"
+      ],
       "run_time": 5
     },
     {
-      "command": "",
+      "commands": [],
       "run_time": 5
     }
   ]
