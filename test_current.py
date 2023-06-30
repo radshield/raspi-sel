@@ -6,4 +6,4 @@ if __name__ == '__main__':
   adc = init_adc()
   while True:
     print('Voltage: {}\n'.format(adc.voltage))
-    
+
