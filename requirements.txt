@@ -1,2 +1,5 @@
 adafruit-circuitpython-ads1x15
+adafruit-circuitpython-busdevice
+barbudor-circuitpython-ina3221
 psutil
+
