@@ -11,5 +11,6 @@ setup(name='raspi-sel',
                         'barbudor-circuitpython-ina3221',
                         'psutil'],
       py_modules=[],
-      scripts=['ina3221_measurement.py']
+      scripts=['current_logging.py',
+               'ina3221_measurement.py']
       )

@@ -5,18 +5,23 @@ import board
 import busio
 import os
 import psutil
+import signal
 import tempfile
 import time
 
 from barbudor_ina3221.lite import INA3221
 
+run_flag = False
+
 parser = argparse.ArgumentParser(description='Measure current with load and peripherals on INA3221.')
 parser.add_argument('-d', '--data-rate', metavar='N', dest='data_rate', default=100,
                     help='number of measurements to record per second')
-parser.add_argument('-r', '--run-time', metavar='N', dest='run_time', default=120,
-                    help='number of seconds to record data')
 parser.add_argument('-o', '--output', metavar='N', dest='output_file', default=0,
                     help='name of output file')
+
+def signal_handler(sig, frame):
+    global run_flag
+    run_flag = False
 
 
 def init_monitor():
@@ -29,13 +34,17 @@ def init_monitor():
     return ina3221
 
 
-def main_loop(ina3221, run_time, data_rate, out_file):
+def main_loop(ina3221, data_rate, out_file):
+    global run_flag
+
     log = open(out_file, 'w')
     log.write('time,cpu_percent_0,cpu_percent_1,cpu_percent_2,cpu_percent_3,' +
               'virtual_memory,adc_voltage_all,adc_voltage_payload,adc_voltage_peripherals\n')
     log.flush()
 
-    for i in range(data_rate * run_time):
+    run_flag = True
+
+    while run_flag:
         log.write('{},{},{},{},{},{},{},{},{}\n'.format(str(time.time()),
                                                         100.0 - psutil.cpu_times_percent(percpu=True)[0].idle,
                                                         100.0 - psutil.cpu_times_percent(percpu=True)[1].idle,
@@ -57,10 +66,9 @@ if __name__ == '__main__':
         temp_dir = tempfile.mkdtemp()
         output_file = os.path.join(temp_dir, 'currents.log')
 
-    print('Output file: {}'.format(output_file))
+    signal.signal(signal.SIGUSR1, signal_handler)
 
     monitor = init_monitor()
     main_loop(monitor,
-              run_time=int(args.run_time),
               data_rate=int(args.data_rate),
               out_file=output_file)
