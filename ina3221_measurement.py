@@ -3,7 +3,9 @@
 import argparse
 import board
 import busio
+import os
 import psutil
+import tempfile
 import time
 
 from barbudor_ina3221.lite import INA3221
@@ -13,7 +15,7 @@ parser.add_argument('-d', '--data-rate', metavar='N', dest='data_rate', default=
                     help='number of measurements to record per second')
 parser.add_argument('-r', '--run-time', metavar='N', dest='run_time', default=120,
                     help='number of seconds to record data')
-parser.add_argument('-o', '--output', metavar='N', dest='output_file', default='currents.log',
+parser.add_argument('-o', '--output', metavar='N', dest='output_file', default=0,
                     help='name of output file')
 
 
@@ -50,8 +52,15 @@ def main_loop(ina3221, run_time, data_rate, out_file):
 if __name__ == '__main__':
     args = parser.parse_args()
 
+    output_file = args.output_file
+    if output_file == 0:
+        temp_dir = tempfile.mkdtemp()
+        output_file = os.path.join(temp_dir, 'currents.log')
+
+    print('Output file: {}'.format(output_file))
+
     monitor = init_monitor()
     main_loop(monitor,
               run_time=int(args.run_time),
               data_rate=int(args.data_rate),
-              out_file=args.output_file)
+              out_file=output_file)
