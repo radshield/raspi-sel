@@ -37,8 +37,8 @@ def init_monitor():
 def main_loop(ina3221, data_rate, out_file):
     global run_flag
 
-    log = open(out_file, 'w')
-    log.write('time,cpu_percent_0,cpu_percent_1,cpu_percent_2,cpu_percent_3,' +
+    log = open(out_file, 'a')
+    log.write('\ntime,cpu_percent_0,cpu_percent_1,cpu_percent_2,cpu_percent_3,' +
               'virtual_memory,adc_voltage_all,adc_voltage_payload,adc_voltage_peripherals\n')
     log.flush()
 
