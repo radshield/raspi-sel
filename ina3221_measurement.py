@@ -26,7 +26,7 @@ def signal_handler(sig, frame):
 
 def init_monitor():
     i2c = busio.I2C(board.SCL, board.SDA)
-    ina3221 = INA3221(i2c)
+    ina3221 = INA3221(i2c, shunt_resistor = (0.05, 0.05, 0.05))
 
     for channel in range(1, 4):
         ina3221.enable_channel(channel)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     output_file = args.output_file
     if output_file == 0:
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp(prefix='current_data')
         output_file = os.path.join(temp_dir, 'currents.log')
 
     signal.signal(signal.SIGUSR1, signal_handler)

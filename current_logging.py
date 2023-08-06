@@ -21,7 +21,7 @@ if __name__ == '__main__':
     if args.operation[0] == 'start':
         output_file = args.output_file
         if output_file == 0:
-            temp_dir = tempfile.mkdtemp()
+            temp_dir = tempfile.mkdtemp(prefix="current_data")
             output_file = os.path.join(temp_dir, 'currents.log')
 
         print('Output file: {}'.format(output_file))
