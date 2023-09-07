@@ -46,10 +46,10 @@ def main_loop(ina3221, data_rate, out_file):
 
     while run_flag:
         log.write('{},{},{},{},{},{},{},{},{}\n'.format(str(time.time()),
-                                                        100.0 - psutil.cpu_times_percent(percpu=True)[0].idle,
-                                                        100.0 - psutil.cpu_times_percent(percpu=True)[1].idle,
-                                                        100.0 - psutil.cpu_times_percent(percpu=True)[2].idle,
-                                                        100.0 - psutil.cpu_times_percent(percpu=True)[3].idle,
+                                                        100.0 - psutil.cpu_percent(percpu=True)[0].idle,
+                                                        100.0 - psutil.cpu_percent(percpu=True)[1].idle,
+                                                        100.0 - psutil.cpu_percent(percpu=True)[2].idle,
+                                                        100.0 - psutil.cpu_percent(percpu=True)[3].idle,
                                                         psutil.virtual_memory().percent,
                                                         ina3221.current(1),
                                                         ina3221.current(2),
