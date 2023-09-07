@@ -38,10 +38,10 @@ def main_loop(adc, tests, data_rate, out_file='currents.log'):
 
         for i in range(test['run_time'] * data_rate):
             log.write('{},{},{},{},{},{},{}\n'.format(str(datetime.datetime.now()),
-                                                      100.0 - psutil.cpu_times_percent(percpu=True)[0].idle,
-                                                      100.0 - psutil.cpu_times_percent(percpu=True)[1].idle,
-                                                      100.0 - psutil.cpu_times_percent(percpu=True)[2].idle,
-                                                      100.0 - psutil.cpu_times_percent(percpu=True)[3].idle,
+                                                      100.0 - psutil.cpu_percent(interval=None, percpu=True)[0],
+                                                      100.0 - psutil.cpu_percent(interval=None, percpu=True)[1],
+                                                      100.0 - psutil.cpu_percent(interval=None, percpu=True)[2],
+                                                      100.0 - psutil.cpu_percent(interval=None, percpu=True)[3],
                                                       psutil.virtual_memory().percent,
                                                       adc.voltage))
             log.flush()
