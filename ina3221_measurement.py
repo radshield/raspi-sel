@@ -35,10 +35,10 @@ def main_loop(ina3221, run_time=60, channels=[0, 1, 2], data_rate=100, out_file=
 
     for i in range(data_rate * run_time):
         log.write('{},{},{},{},{},{},{},{},{}\n'.format(str(datetime.datetime.now()),
-                                                        psutil.cpu_freq(percpu=True)[0].current,
-                                                        psutil.cpu_freq(percpu=True)[1].current,
-                                                        psutil.cpu_freq(percpu=True)[2].current,
-                                                        psutil.cpu_freq(percpu=True)[3].current,
+                                                        psutil.cpu_percent(interval=None, percpu=True)[0],
+                                                        psutil.cpu_percent(interval=None, percpu=True)[1],
+                                                        psutil.cpu_percent(interval=None, percpu=True)[2],
+                                                        psutil.cpu_percent(interval=None, percpu=True)[3],
                                                         psutil.virtual_memory().percent,
                                                         ina3221.current(channels[0]),
                                                         ina3221.current(channels[1]),
