@@ -18,11 +18,11 @@ parser.add_argument('input_file', type=str, nargs=1,
                     help='input file for commands to run, as JSON')
 
 
-def init_monitor(channels=[0, 1, 2]):
+def init_monitor():
     i2c = busio.I2C(board.SCL, board.SDA)
     ina3221 = INA3221(i2c)
 
-    for channel in channels:
+    for channel in range(0, 2):
         ina3221.enable_channel(channel)
 
     return ina3221
@@ -46,7 +46,7 @@ def main_loop(ina3221, run_time=60, channels=[0, 1, 2], data_rate=100, out_file=
                                                       psutil.cpu_percent(interval=None, percpu=True)[2],
                                                       psutil.cpu_percent(interval=None, percpu=True)[3],
                                                       psutil.virtual_memory().percent,
-                                                      ina3221.current(channels[0])))
+                                                      ina3221.current(0)))
             log.flush()
             time.sleep(1 / data_rate)
 
