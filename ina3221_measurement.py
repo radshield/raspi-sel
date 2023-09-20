@@ -46,7 +46,7 @@ def main_loop(ina3221, run_time=60, channels=[0, 1, 2], data_rate=100, out_file=
                                                       psutil.cpu_percent(interval=None, percpu=True)[2],
                                                       psutil.cpu_percent(interval=None, percpu=True)[3],
                                                       psutil.virtual_memory().percent,
-                                                      ina3221.current(0)))
+                                                      ina3221.current(1)))
             log.flush()
             time.sleep(1 / data_rate)
 
