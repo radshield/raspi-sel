@@ -22,7 +22,7 @@ def init_monitor():
     i2c = busio.I2C(board.SCL, board.SDA)
     ina3221 = INA3221(i2c)
 
-    for channel in range(0, 2):
+    for channel in range(1, 3):
         ina3221.enable_channel(channel)
 
     return ina3221
