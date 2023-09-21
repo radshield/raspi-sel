@@ -25,46 +25,46 @@ float shunt_to_amp(int shunt) {
   }
 
   // shunt raw value to mv (163.8mV LSB (SD0):40μV) datasheet
-  float amp1mv = (163.8 / 4096) * shunt;
+  float amp1mv = 0.0004 * shunt;
 
   // without external shunt R on device is 0.1 ohm
   return amp1mv / 0.1;
 }
 
 int main(int argc, char **argv) {
+  if (argc != 2) {
+    printf("Usage: %s LOGFILE", argv[0]);
+    return -1;
+  }
+
   // Setup I2C communication
   gpioInitialise();
-  int fd = i2cOpen(1, DEVICE_ID, 0);
-  if (fd == -1) {
-    printf("Failed to init I2C communication.\n");
-    return -1;
-  }
-  int check_vendor_id = i2cReadWordData(fd, 0xFF);
-  if (check_vendor_id == SIGNATURE) {
-    printf("I2C communication successfully setup with INA3221 device at addess "
-           "0x%x.\n",
-           DEVICE_ID);
-  } else {
-    printf("Device at address 0x%x is not an INA3221 device; exiting\n",
-           DEVICE_ID);
-    return -1;
-  }
 
-  // Switch device to measurement mode (reset when connect,continous mode, max
-  // average) to modify this in next version
-  i2cWriteWordData(fd, REG_RESET, 0b1111111111111111);
+  int i2c = i2cOpen(1, DEVICE_ID, 0);
+  if (i2c == -1)
+    return -2;
+
+  int check_vendor_id = i2cReadWordData(i2c, 0xFF);
+  if (check_vendor_id != SIGNATURE)
+    return -3;
+
+  FILE *fd = fopen(argv[1], "w");
+  fprintf(fd, "current\n");
+
+  // Switch device to measurement mode
+  i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
 
   while (1) {
-    int shunt1 = i2cReadWordData(fd, REG_DATA_ch1);
-    // change endian, strip last 3 bits provide raw value
-    shunt1 = change_endian(shunt1) / 8;
+    int shunt1 = i2cReadWordData(i2c, REG_DATA_ch1);
+    shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
     float ch1_amp = shunt_to_amp(shunt1);
 
-    printf("ch1 raw:%d , ch1 A:%f\n", shunt1, ch1_amp);
+    fprintf(fd, "%f\n", ch1_amp);
     sleep(1);
   }
 
-  i2cClose(fd);
+  fclose(fd);
+  i2cClose(i2c);
   gpioTerminate();
   return 0;
 }
