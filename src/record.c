@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <wiringPiI2C.h>
+#include <pigpio.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
 #include <sys/syscall.h>
@@ -33,12 +33,13 @@ float shunt_to_amp(int shunt) {
 
 int main(int argc, char **argv) {
   // Setup I2C communication
-  int fd = wiringPiI2CSetup(DEVICE_ID);
+  gpioInitialise();
+  int fd = i2cOpen(1, DEVICE_ID, 0);
   if (fd == -1) {
     printf("Failed to init I2C communication.\n");
     return -1;
   }
-  int check_vendor_id = wiringPiI2CReadReg16(fd, 0xFF);
+  int check_vendor_id = i2cReadWordData(fd, 0xFF);
   if (check_vendor_id == SIGNATURE) {
     printf("I2C communication successfully setup with INA3221 device at addess "
            "0x%x.\n",
@@ -51,10 +52,10 @@ int main(int argc, char **argv) {
 
   // Switch device to measurement mode (reset when connect,continous mode, max
   // average) to modify this in next version
-  wiringPiI2CWriteReg16(fd, REG_RESET, 0b1111111111111111);
+  i2cWriteWordData(fd, REG_RESET, 0b1111111111111111);
 
   while (1) {
-    int shunt1 = wiringPiI2CReadReg16(fd, REG_DATA_ch1);
+    int shunt1 = i2cReadWordData(fd, REG_DATA_ch1);
     // change endian, strip last 3 bits provide raw value
     shunt1 = change_endian(shunt1) / 8;
     float ch1_amp = shunt_to_amp(shunt1);
@@ -63,5 +64,7 @@ int main(int argc, char **argv) {
     sleep(1);
   }
 
+  i2cClose();
+  gpioTerminate();
   return 0;
 }
