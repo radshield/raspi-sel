@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
     sleep(1);
   }
 
-  i2cClose();
+  i2cClose(fd);
   gpioTerminate();
   return 0;
 }
