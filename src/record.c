@@ -1,9 +1,17 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <pigpio.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
+#include <pigpio.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <sys/syscall.h>
+#include <unistd.h>
+
+static volatile bool sentinel = 1;
+
+void int_handler(int signum) {
+    sentinel = 0;
+}
 
 // INA3221 constants
 #define DEVICE_ID 0x40
@@ -48,15 +56,19 @@ int main(int argc, char **argv) {
   if (check_vendor_id != SIGNATURE)
     return -3;
 
+  // Open logfile
   FILE *fd = fopen(argv[1], "w");
   fprintf(fd, "current\n");
 
   // Switch device to measurement mode
   i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
 
+  signal(SIGINT, int_handler);
+
   while (1) {
     int shunt1 = i2cReadWordData(i2c, REG_DATA_ch1);
-    shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
+    // change endian, strip last 3 bits provide raw value
+    shunt1 = change_endian(shunt1) / 8;
     float ch1_amp = shunt_to_amp(shunt1);
 
     fprintf(fd, "%f\n", ch1_amp);

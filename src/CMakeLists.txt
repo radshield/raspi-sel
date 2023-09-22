@@ -1,4 +1,4 @@
-add_library(pigpio SHARED
+add_library(pigpio STATIC
 	3rdparty/pigpio/command.c
 	3rdparty/pigpio/pigpio.c
 )

@@ -20,7 +20,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 add_compile_options(
 	--target=aarch64-unknown-linux-gnu
-	-fuse-ld=lld
 )
 
 add_link_options(
