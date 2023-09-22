@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   // Switch device to measurement mode
   i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
 
-  signal(SIGINT, int_handler);
+  signal(SIGUSR1, int_handler);
 
   for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
     ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
@@ -162,17 +162,21 @@ int main(int argc, char **argv) {
       ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
 
+    fflush(fd);
     usleep(100);
   }
 
   i2cClose(i2c);
   gpioTerminate();
 
+  printf("GPIO close\n");
+
   for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
     close(perf_events[i].fd_2);
     close(perf_events[i].fd);
   }
   free(perf_events);
+  printf("Perf events close\n");
 
   fclose(fd);
   return 0;
