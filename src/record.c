@@ -4,10 +4,27 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
 static volatile bool sentinel = 1;
+
+struct read_format {
+    uint64_t nr;
+    struct {
+        uint64_t value;
+        uint64_t id;
+    } values[];
+};
+
+struct perf_ptr {
+  int fd, fd_2;
+  uint64_t cycle_id, insn_id;
+  uint64_t cycles, insns;
+};
 
 void int_handler(int signum) {
     sentinel = 0;
@@ -28,9 +45,8 @@ unsigned int change_endian(unsigned int x) {
 
 float shunt_to_amp(int shunt) {
   // sign change for negative value (bit 13 is sign)
-  if (shunt > 4096) {
+  if (shunt > 4096)
     shunt = -(8192 - shunt);
-  }
 
   // shunt raw value to mv (163.8mV LSB (SD0):40μV) datasheet
   float amp1mv = 0.0004 * shunt;
@@ -39,7 +55,41 @@ float shunt_to_amp(int shunt) {
   return amp1mv / 0.1;
 }
 
+struct perf_ptr init_perf_event(int cpu) {
+  struct perf_event_attr pea;
+  struct perf_ptr ret;
+
+  // Count perf events
+  memset(&pea, 0, sizeof(struct perf_event_attr));
+  pea.type = PERF_TYPE_HARDWARE;
+  pea.size = sizeof(struct perf_event_attr);
+  pea.config = PERF_COUNT_HW_CPU_CYCLES;
+  pea.disabled = 1;
+  pea.exclude_kernel = 0;
+  pea.exclude_hv = 0;
+  pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  ret.fd = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
+  ioctl(ret.fd, PERF_EVENT_IOC_ID, &ret.cycle_id);
+
+  memset(&pea, 0, sizeof(struct perf_event_attr));
+  pea.type = PERF_TYPE_HARDWARE;
+  pea.size = sizeof(struct perf_event_attr);
+  pea.config = PERF_COUNT_HW_INSTRUCTIONS;
+  pea.disabled = 1;
+  pea.exclude_kernel = 0;
+  pea.exclude_hv = 0;
+  pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  ret.fd_2 = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd, 0);
+  ioctl(ret.fd_2, PERF_EVENT_IOC_ID, &ret.insn_id);
+
+  return ret;
+}
+
 int main(int argc, char **argv) {
+  struct perf_ptr *perf_events;
+  char buf[4096];
+  struct read_format* rf = (struct read_format*) buf;
+
   if (argc != 2) {
     printf("Usage: %s LOGFILE", argv[0]);
     return -1;
@@ -58,25 +108,66 @@ int main(int argc, char **argv) {
 
   // Open logfile
   FILE *fd = fopen(argv[1], "w");
-  fprintf(fd, "current\n");
+
+  // Set up perf events
+  perf_events = malloc(sizeof(struct perf_ptr) * sysconf(_SC_NPROCESSORS_ONLN));
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
+    perf_events[i] = init_perf_event(i);
 
   // Switch device to measurement mode
   i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
 
   signal(SIGINT, int_handler);
 
-  while (1) {
-    int shunt1 = i2cReadWordData(i2c, REG_DATA_ch1);
-    // change endian, strip last 3 bits provide raw value
-    shunt1 = change_endian(shunt1) / 8;
-    float ch1_amp = shunt_to_amp(shunt1);
-
-    fprintf(fd, "%f\n", ch1_amp);
-    sleep(1);
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+    ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+    ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
   }
 
-  fclose(fd);
+  while (sentinel) {
+    // Read from INA3221
+    int shunt1 = i2cReadWordData(i2c, REG_DATA_ch1);
+    shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
+    float ch1_amp = shunt_to_amp(shunt1);
+
+    // Read from perf counters
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+    }
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      read(perf_events[i].fd, buf, sizeof(buf));
+      for (i = 0; i < rf->nr; i++) {
+        if (rf->values[i].id == perf_events[i].cycle_id)
+          perf_events[i].cycles = rf->values[i].value;
+        else if (rf->values[i].id == perf_events[i].insn_id)
+          perf_events[i].insns = rf->values[i].value;
+      }
+    }
+
+    // Print out current and perf data to file
+    fprintf(fd, "%f", ch1_amp);
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      fprintf(fd, ",%lu,%lu", perf_events[i].cycles, perf_events[i].insns);
+    }
+
+    // Reset and restart perf counters
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    }
+
+    usleep(100);
+  }
+
   i2cClose(i2c);
   gpioTerminate();
+
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+    close(perf_events[i].fd_2);
+    close(perf_events[i].fd);
+  }
+  free(perf_events);
+
+  fclose(fd);
   return 0;
 }
