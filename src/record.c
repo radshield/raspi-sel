@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   struct read_format* rf = (struct read_format*) buf;
 
   if (argc != 2) {
-    printf("Usage: %s LOGFILE", argv[0]);
+    printf("Usage: %s LOGFILE\n", argv[0]);
     return -1;
   }
 
@@ -106,13 +106,17 @@ int main(int argc, char **argv) {
   if (check_vendor_id != SIGNATURE)
     return -3;
 
+  printf("I2C setup success\n");
+
   // Open logfile
   FILE *fd = fopen(argv[1], "w");
 
   // Set up perf events
   perf_events = malloc(sizeof(struct perf_ptr) * sysconf(_SC_NPROCESSORS_ONLN));
-  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
     perf_events[i] = init_perf_event(i);
+    printf("Init perf on core %d\n", i);
+  }
 
   // Switch device to measurement mode
   i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
@@ -123,6 +127,8 @@ int main(int argc, char **argv) {
     ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
     ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
   }
+
+  printf("Logging start\n");
 
   while (sentinel) {
     // Read from INA3221
