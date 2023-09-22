@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <i2c/smbus.h>
 #include <linux/i2c.h>
@@ -59,25 +60,21 @@ float shunt_to_amp(int shunt) {
   return amp1mv / 0.1;
 }
 
-struct perf_ptr init_perf_event(int cpu, int groupid) {
+struct perf_ptr init_perf_event(int cpu) {
   struct perf_event_attr pea;
   struct perf_ptr ret;
-  int disabled = (groupid == -1) ? 1 : 0;
 
   // Count perf events
   memset(&pea, 0, sizeof(struct perf_event_attr));
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_CPU_CYCLES;
-  pea.disabled = disabled;
+  pea.disabled = 1;
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  ret.fd = syscall(__NR_perf_event_open, &pea, -1, cpu, groupid, 0);
+  ret.fd = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
   ioctl(ret.fd, PERF_EVENT_IOC_ID, &ret.cycle_id);
-
-  if (groupid == -1)
-    groupid = ret.fd;
 
   memset(&pea, 0, sizeof(struct perf_event_attr));
   pea.type = PERF_TYPE_HARDWARE;
@@ -87,7 +84,7 @@ struct perf_ptr init_perf_event(int cpu, int groupid) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  ret.fd_2 = syscall(__NR_perf_event_open, &pea, -1, cpu, groupid, 0);
+  ret.fd_2 = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd, 0);
   ioctl(ret.fd_2, PERF_EVENT_IOC_ID, &ret.insn_id);
 
   return ret;
@@ -123,9 +120,8 @@ int main(int argc, char **argv) {
   FILE *fd = fopen(argv[1], "w");
 
   // Set up perf events
-  perf_events[0] = init_perf_event(0, -1);
-  for (int i = 1; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-    perf_events[i] = init_perf_event(i, perf_events[0].fd);
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+    perf_events[i] = init_perf_event(i);
     printf("Init perf on core %d\n", i);
   }
 
@@ -134,9 +130,10 @@ int main(int argc, char **argv) {
 
   signal(SIGINT, int_handler);
 
-  ioctl(perf_events[0].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-  ioctl(perf_events[0].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
-
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+    ioctl(perf_events[0].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+    ioctl(perf_events[0].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+  }
   printf("Logging start\n");
 
   while (sentinel) {
@@ -146,11 +143,12 @@ int main(int argc, char **argv) {
     float ch1_amp = shunt_to_amp(shunt1);
 
     // Read from perf counters
-    ioctl(perf_events[0].fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
-    read(perf_events[0].fd, buf, sizeof(buf));
-    for (int it = 0; it < rf->nr; it++) {
-      for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      read(perf_events[i].fd, buf, sizeof(buf));
+      for (int it = 0; it < rf->nr; it++) {
         if (rf->values[it].id == perf_events[i].cycle_id)
           perf_events[i].cycles = rf->values[it].value;
         else if (rf->values[it].id == perf_events[i].insn_id)
@@ -160,14 +158,15 @@ int main(int argc, char **argv) {
 
     // Print out current and perf data to file
     fprintf(fd, "%f", ch1_amp);
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      fprintf(fd, ",%lu,%lu", perf_events[i].cycles, perf_events[i].insns);
-    }
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
+      fprintf(fd, ",%llu,%llu", perf_events[i].cycles, perf_events[i].insns);
     fprintf(fd, "\n");
 
     // Reset and restart perf counters
-    ioctl(perf_events[0].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-    ioctl(perf_events[0].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    }
 
     usleep(100);
   }
