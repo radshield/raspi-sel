@@ -1,8 +1,11 @@
+#include <fcntl.h>
+#include <i2c/smbus.h>
+#include <linux/i2c-dev.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
-#include <pigpio.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,13 +99,16 @@ int main(int argc, char **argv) {
   }
 
   // Setup I2C communication
-  gpioInitialise();
-
-  int i2c = i2cOpen(1, DEVICE_ID, 0);
+  int i2c = open("/dev/i2c-1", O_RDWR);
   if (i2c == -1)
     return -2;
 
-  int check_vendor_id = i2cReadWordData(i2c, 0xFF);
+  if(ioctl(i2c, I2C_SLAVE, 0x40) < 0) {
+    close(i2c);
+    return -4;
+  }
+
+  int check_vendor_id = i2c_smbus_read_word_data(i2c, 0xFF);
   if (check_vendor_id != SIGNATURE)
     return -3;
 
@@ -119,7 +125,7 @@ int main(int argc, char **argv) {
   }
 
   // Switch device to measurement mode
-  i2cWriteWordData(i2c, REG_RESET, 0b1111111111111111);
+  i2c_smbus_write_word_data(i2c, REG_RESET, 0b1111111111111111);
 
   signal(SIGUSR1, int_handler);
 
@@ -132,7 +138,7 @@ int main(int argc, char **argv) {
 
   while (sentinel) {
     // Read from INA3221
-    int shunt1 = i2cReadWordData(i2c, REG_DATA_ch1);
+    int shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
     shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
     float ch1_amp = shunt_to_amp(shunt1);
 
@@ -166,9 +172,7 @@ int main(int argc, char **argv) {
     usleep(100);
   }
 
-  i2cClose(i2c);
-  gpioTerminate();
-
+  close(i2c);
   printf("GPIO close\n");
 
   for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
