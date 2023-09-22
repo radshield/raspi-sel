@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <i2c/smbus.h>
+#include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
@@ -146,13 +147,14 @@ int main(int argc, char **argv) {
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
       ioctl(perf_events[i].fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
     }
+
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
       read(perf_events[i].fd, buf, sizeof(buf));
-      for (i = 0; i < rf->nr; i++) {
-        if (rf->values[i].id == perf_events[i].cycle_id)
-          perf_events[i].cycles = rf->values[i].value;
-        else if (rf->values[i].id == perf_events[i].insn_id)
-          perf_events[i].insns = rf->values[i].value;
+      for (int it = 0; it < rf->nr; it++) {
+        if (rf->values[it].id == perf_events[it].cycle_id)
+          perf_events[it].cycles = rf->values[it].value;
+        else if (rf->values[it].id == perf_events[it].insn_id)
+          perf_events[it].insns = rf->values[it].value;
       }
     }
 
@@ -161,6 +163,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
       fprintf(fd, ",%lu,%lu", perf_events[i].cycles, perf_events[i].insns);
     }
+    fprintf(fd, "\n");
 
     // Reset and restart perf counters
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
@@ -168,7 +171,6 @@ int main(int argc, char **argv) {
       ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
 
-    fflush(fd);
     usleep(100);
   }
 
