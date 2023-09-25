@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <fcntl.h>
 #include <i2c/smbus.h>
 #include <linux/i2c.h>
@@ -9,10 +8,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 
 static volatile bool sentinel = 1;
@@ -53,7 +53,7 @@ float shunt_to_amp(int shunt) {
   if (shunt > 4096)
     shunt = -(8192 - shunt);
 
-  // shunt raw value to mv (163.8mV LSB (SD0):40μV) datasheet
+  // shunt raw value to mv (40μV datasheet)
   float amp1mv = 0.0004 * shunt;
 
   // without external shunt R on device is 0.1 ohm
@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
   struct perf_ptr perf_events[sysconf(_SC_NPROCESSORS_ONLN)];
   char buf[9 * sizeof(uint64_t)];
   struct read_format* rf = (struct read_format*) buf;
+  struct timespec start, counter;
 
   if (argc != 2) {
     printf("Usage: %s LOGFILE\n", argv[0]);
@@ -136,6 +137,8 @@ int main(int argc, char **argv) {
   }
   printf("Logging start\n");
 
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
   while (sentinel) {
     // Read from INA3221
     int shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
@@ -156,7 +159,10 @@ int main(int argc, char **argv) {
       }
     }
 
+    clock_gettime(CLOCK_MONOTONIC_RAW, &counter);
+
     // Print out current and perf data to file
+    fprintf(fd, "%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
     fprintf(fd, "%f", ch1_amp);
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
       fprintf(fd, ",%llu,%llu", perf_events[i].cycles, perf_events[i].insns);
