@@ -26,9 +26,9 @@ struct read_format {
 };
 
 struct perf_ptr {
-  int fd, fd_2;
-  uint64_t cycle_id, insn_id;
-  uint64_t cycles, insns;
+  int fd_cycle, fd_insn, fd_cache_hit, fd_cache_miss;
+  uint64_t cycle_id, insn_id, cache_hit_id, cache_miss_id;
+  uint64_t cycles, insns, cache_hit, cache_miss;
 };
 
 void int_handler(int signum) {
@@ -73,8 +73,8 @@ struct perf_ptr init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  ret.fd = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
-  ioctl(ret.fd, PERF_EVENT_IOC_ID, &ret.cycle_id);
+  ret.fd_cycle = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
+  ioctl(ret.fd_cycle, PERF_EVENT_IOC_ID, &ret.cycle_id);
 
   memset(&pea, 0, sizeof(struct perf_event_attr));
   pea.type = PERF_TYPE_HARDWARE;
@@ -84,8 +84,30 @@ struct perf_ptr init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  ret.fd_2 = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd, 0);
-  ioctl(ret.fd_2, PERF_EVENT_IOC_ID, &ret.insn_id);
+  ret.fd_insn = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd_cycle, 0);
+  ioctl(ret.fd_insn, PERF_EVENT_IOC_ID, &ret.insn_id);
+
+  memset(&pea, 0, sizeof(struct perf_event_attr));
+  pea.type = PERF_TYPE_HARDWARE;
+  pea.size = sizeof(struct perf_event_attr);
+  pea.config = PERF_COUNT_HW_CACHE_REFERENCES;
+  pea.disabled = 0;
+  pea.exclude_kernel = 0;
+  pea.exclude_hv = 0;
+  pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  ret.fd_cache_hit = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd_cycle, 0);
+  ioctl(ret.fd_cache_hit, PERF_EVENT_IOC_ID, &ret.cache_hit_id);
+
+  memset(&pea, 0, sizeof(struct perf_event_attr));
+  pea.type = PERF_TYPE_HARDWARE;
+  pea.size = sizeof(struct perf_event_attr);
+  pea.config = PERF_COUNT_HW_CACHE_MISSES;
+  pea.disabled = 0;
+  pea.exclude_kernel = 0;
+  pea.exclude_hv = 0;
+  pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+  ret.fd_cache_miss = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd_cycle, 0);
+  ioctl(ret.fd_cache_miss, PERF_EVENT_IOC_ID, &ret.cache_miss_id);
 
   return ret;
 }
@@ -132,8 +154,8 @@ int main(int argc, char **argv) {
   signal(SIGINT, int_handler);
 
   for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-    ioctl(perf_events[0].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-    ioctl(perf_events[0].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    ioctl(perf_events[0].fd_cycle, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+    ioctl(perf_events[0].fd_cycle, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
   }
   printf("Logging start\n");
 
@@ -147,15 +169,19 @@ int main(int argc, char **argv) {
 
     // Read from perf counters
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
-      ioctl(perf_events[i].fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[i].fd_cycle, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      read(perf_events[i].fd, buf, sizeof(buf));
+      read(perf_events[i].fd_cycle, buf, sizeof(buf));
       for (int it = 0; it < rf->nr; it++) {
         if (rf->values[it].id == perf_events[i].cycle_id)
           perf_events[i].cycles = rf->values[it].value;
         else if (rf->values[it].id == perf_events[i].insn_id)
           perf_events[i].insns = rf->values[it].value;
+        else if (rf->values[it].id == perf_events[i].cache_hit_id)
+          perf_events[i].cache_hit = rf->values[it].value;
+        else if (rf->values[it].id == perf_events[i].cache_miss_id)
+          perf_events[i].cache_miss = rf->values[it].value;
       }
     }
 
@@ -164,14 +190,19 @@ int main(int argc, char **argv) {
     // Print out current and perf data to file
     fprintf(fd, "%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
     fprintf(fd, "%f", ch1_amp);
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
-      fprintf(fd, ",%llu,%llu", perf_events[i].cycles, perf_events[i].insns);
+    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+      fprintf(fd, ",%llu,%llu,%llu,%llu",
+        perf_events[i].cycles,
+        perf_events[i].insns,
+        perf_events[i].cache_hit,
+        perf_events[i].cache_miss);
+    }
     fprintf(fd, "\n");
 
     // Reset and restart perf counters
     for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      ioctl(perf_events[i].fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-      ioctl(perf_events[i].fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[i].fd_cycle, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[i].fd_cycle, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
 
     usleep(100000);
@@ -181,10 +212,12 @@ int main(int argc, char **argv) {
   printf("GPIO close\n");
 
   for (int i = sysconf(_SC_NPROCESSORS_ONLN); i >= 0; i--) {
-    close(perf_events[i].fd_2);
-    close(perf_events[i].fd);
+    close(perf_events[i].fd_cache_miss);
+    close(perf_events[i].fd_cache_hit);
+    close(perf_events[i].fd_insn);
+    close(perf_events[i].fd_cycle);
   }
-  printf("Perf events close\n");
+  printf("Perf events closed\n");
 
   fclose(fd);
   return 0;
