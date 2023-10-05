@@ -1,3 +1,4 @@
+#include <cpufreq.h>
 #include <fcntl.h>
 #include <i2c/smbus.h>
 #include <linux/i2c.h>
@@ -37,9 +38,9 @@ struct read_format {
 };
 
 struct perf_ptr {
-  int fd[NUM_EVENTS];
-  uint64_t id[NUM_EVENTS];
-  uint64_t cpu_cycles,
+  int fd[NUM_EVENTS], cpu_freq;
+  uint64_t id[NUM_EVENTS],
+           cpu_cycles,
            insns,
            cache_hit,
            cache_miss,
@@ -210,26 +211,27 @@ int main(int argc, char **argv) {
     float ch1_amp = shunt_to_amp(shunt1);
 
     // Read from perf counters
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
-      ioctl(perf_events[i].fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+    for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++)
+      ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
 
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      read(perf_events[i].fd[0], buf, sizeof(buf));
-      for (int it = 0; it < rf->nr; it++) {
-        if (rf->values[it].id == perf_events[i].id[0])
-          perf_events[i].cpu_cycles = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[1])
-          perf_events[i].insns = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[2])
-          perf_events[i].cache_hit = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[3])
-          perf_events[i].cache_miss = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[4])
-          perf_events[i].br_insns = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[5])
-          perf_events[i].br_miss = rf->values[it].value;
-        else if (rf->values[it].id == perf_events[i].id[6])
-          perf_events[i].bus_cycles = rf->values[it].value;
+    for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
+      perf_events[cpu].cpu_freq = cpufreq_get(cpu);
+      read(perf_events[cpu].fd[0], buf, sizeof(buf));
+      for (int event = 0; event < rf->nr; event++) {
+        if (rf->values[event].id == perf_events[cpu].id[0])
+          perf_events[cpu].cpu_cycles = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[1])
+          perf_events[cpu].insns = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[2])
+          perf_events[cpu].cache_hit = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[3])
+          perf_events[cpu].cache_miss = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[4])
+          perf_events[cpu].br_insns = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[5])
+          perf_events[cpu].br_miss = rf->values[event].value;
+        else if (rf->values[event].id == perf_events[cpu].id[6])
+          perf_events[cpu].bus_cycles = rf->values[event].value;
       }
     }
 
@@ -238,22 +240,23 @@ int main(int argc, char **argv) {
     // Print out current and perf data to file
     fprintf(fd, "%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
     fprintf(fd, "%f", ch1_amp);
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      fprintf(fd, ",%llu,%llu,%llu,%llu,%llu,%llu,%llu",
-        perf_events[i].cpu_cycles,
-        perf_events[i].insns,
-        perf_events[i].cache_hit,
-        perf_events[i].cache_miss,
-        perf_events[i].br_insns,
-        perf_events[i].br_miss,
-        perf_events[i].bus_cycles);
+    for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
+      fprintf(fd, ",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
+        perf_events[cpu].cpu_cycles,
+        perf_events[cpu].insns,
+        perf_events[cpu].cache_hit,
+        perf_events[cpu].cache_miss,
+        perf_events[cpu].br_insns,
+        perf_events[cpu].br_miss,
+        perf_events[cpu].bus_cycles,
+        perf_events[cpu].cpu_freq);
     }
     fprintf(fd, "\n");
 
     // Reset and restart perf counters
-    for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
-      ioctl(perf_events[i].fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
-      ioctl(perf_events[i].fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
+    for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
+      ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
 
     usleep(100000);
