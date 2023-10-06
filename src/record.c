@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
       ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
 
-    usleep(100000);
+    usleep(10);
   }
 
   close(i2c);
