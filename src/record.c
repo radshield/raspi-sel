@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
@@ -49,8 +50,28 @@ struct perf_ptr {
            bus_cycles;
 };
 
+struct io_stats {
+  unsigned long rd_sectors __attribute__ ((aligned (8)));
+  unsigned long wr_sectors __attribute__ ((packed));
+  unsigned long dc_sectors __attribute__ ((packed));
+  unsigned long rd_ios     __attribute__ ((packed));
+  unsigned long rd_merges  __attribute__ ((packed));
+  unsigned long wr_ios     __attribute__ ((packed));
+  unsigned long wr_merges  __attribute__ ((packed));
+  unsigned long dc_ios     __attribute__ ((packed));
+  unsigned long dc_merges  __attribute__ ((packed));
+  unsigned long fl_ios     __attribute__ ((packed));
+  unsigned int  rd_ticks   __attribute__ ((packed));
+  unsigned int  wr_ticks   __attribute__ ((packed));
+  unsigned int  dc_ticks   __attribute__ ((packed));
+  unsigned int  fl_ticks   __attribute__ ((packed));
+  unsigned int  ios_pgr    __attribute__ ((packed));
+  unsigned int  tot_ticks  __attribute__ ((packed));
+  unsigned int  rq_ticks   __attribute__ ((packed));
+};
+
 void int_handler(int signum) {
-    sentinel = 0;
+  sentinel = 0;
 }
 
 unsigned int change_endian(unsigned int x) {
@@ -155,7 +176,72 @@ struct perf_ptr init_perf_event(int cpu) {
   return ret;
 }
 
+int read_sysfs_file_stat_work(char *filename, struct io_stats *ios) {
+  FILE *fp;
+  struct io_stats sdev;
+  int i;
+  unsigned int ios_pgr, tot_ticks, rq_ticks, wr_ticks, dc_ticks, fl_ticks;
+  unsigned long rd_ios, rd_merges_or_rd_sec, wr_ios, wr_merges;
+  unsigned long rd_sec_or_wr_ios, wr_sec, rd_ticks_or_wr_sec;
+  unsigned long dc_ios, dc_merges, dc_sec, fl_ios;
+
+  // Try to read given stat file
+  if ((fp = fopen(filename, "r")) == NULL)
+    return -1;
+
+  i = fscanf(fp, "%lu %lu %lu %lu %lu %lu %lu %u %u %u %u %lu %lu %lu %u %lu %u",
+       &rd_ios, &rd_merges_or_rd_sec, &rd_sec_or_wr_ios, &rd_ticks_or_wr_sec,
+       &wr_ios, &wr_merges, &wr_sec, &wr_ticks, &ios_pgr, &tot_ticks, &rq_ticks,
+       &dc_ios, &dc_merges, &dc_sec, &dc_ticks,
+       &fl_ios, &fl_ticks);
+
+  memset(&sdev, 0, sizeof(struct io_stats));
+
+  if (i >= 11) {
+    // Device or partition
+    sdev.rd_ios     = rd_ios;
+    sdev.rd_merges  = rd_merges_or_rd_sec;
+    sdev.rd_sectors = rd_sec_or_wr_ios;
+    sdev.rd_ticks   = (unsigned int) rd_ticks_or_wr_sec;
+    sdev.wr_ios     = wr_ios;
+    sdev.wr_merges  = wr_merges;
+    sdev.wr_sectors = wr_sec;
+    sdev.wr_ticks   = wr_ticks;
+    sdev.ios_pgr    = ios_pgr;
+    sdev.tot_ticks  = tot_ticks;
+    sdev.rq_ticks   = rq_ticks;
+
+    if (i >= 15) {
+      // Discard I/O
+      sdev.dc_ios     = dc_ios;
+      sdev.dc_merges  = dc_merges;
+      sdev.dc_sectors = dc_sec;
+      sdev.dc_ticks   = dc_ticks;
+    }
+
+    if (i >= 17) {
+      // Flush I/O
+      sdev.fl_ios     = fl_ios;
+      sdev.fl_ticks   = fl_ticks;
+    }
+  }
+  else if (i == 4) {
+    // Partition without extended statistics
+    sdev.rd_ios     = rd_ios;
+    sdev.rd_sectors = rd_merges_or_rd_sec;
+    sdev.wr_ios     = rd_sec_or_wr_ios;
+    sdev.wr_sectors = rd_ticks_or_wr_sec;
+  }
+  
+  *ios = sdev;
+
+  fclose(fp);
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
+  struct io_stats io_stats, io_stats_last;
   struct perf_ptr perf_events[sysconf(_SC_NPROCESSORS_ONLN)];
   char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
   struct read_format* rf = (struct read_format*) buf;
@@ -235,6 +321,8 @@ int main(int argc, char **argv) {
       }
     }
 
+    read_sysfs_file_stat_work("/sys/block/mmcblk0/stat", &io_stats);
+
     clock_gettime(CLOCK_MONOTONIC_RAW, &counter);
 
     // Print out current and perf data to file
@@ -251,6 +339,9 @@ int main(int argc, char **argv) {
         perf_events[cpu].bus_cycles,
         perf_events[cpu].cpu_freq);
     }
+    fprintf(fd, ",%lu,%lu",
+      io_stats.rd_ios - io_stats_last.rd_ios,
+      io_stats.wr_ios - io_stats_last.wr_ios);
     fprintf(fd, "\n");
 
     // Reset and restart perf counters
@@ -258,6 +349,9 @@ int main(int argc, char **argv) {
       ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
       ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
     }
+
+    // Save previous io_stats value
+    io_stats_last = io_stats;
 
     usleep(10);
   }
