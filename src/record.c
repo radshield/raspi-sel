@@ -5,6 +5,7 @@
 #include <linux/i2c-dev.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
+#include <"Python.h">
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -248,7 +249,7 @@ int main(int argc, char **argv) {
   struct timespec start, counter;
 
   if (argc != 2) {
-    printf("Usage: %s LOGFILE\n", argv[0]);
+    printf("Usage: %s TARGET_PID\n", argv[0]);
     return -1;
   }
 
@@ -262,14 +263,13 @@ int main(int argc, char **argv) {
     return -4;
   }
 
+  Py_Initialize();
+
   int check_vendor_id = i2c_smbus_read_word_data(i2c, 0xFF);
   if (check_vendor_id != SIGNATURE)
     return -3;
 
   printf("I2C setup success\n");
-
-  // Open logfile
-  FILE *fd = fopen(argv[1], "w");
 
   // Set up perf events
   for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
@@ -365,6 +365,5 @@ int main(int argc, char **argv) {
 
   printf("Perf events closed\n");
 
-  fclose(fd);
   return 0;
 }
