@@ -5,7 +5,6 @@
 #include <linux/i2c-dev.h>
 #include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
-#include <"Python.h">
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -263,19 +262,13 @@ int main(int argc, char **argv) {
     return -4;
   }
 
-  Py_Initialize();
-
   int check_vendor_id = i2c_smbus_read_word_data(i2c, 0xFF);
   if (check_vendor_id != SIGNATURE)
     return -3;
 
-  printf("I2C setup success\n");
-
   // Set up perf events
-  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++) {
+  for (int i = 0; i < sysconf(_SC_NPROCESSORS_ONLN); i++)
     perf_events[i] = init_perf_event(i);
-    printf("Init perf on core %d\n", i);
-  }
 
   // Switch device to measurement mode
   i2c_smbus_write_word_data(i2c, REG_RESET, 0b1111111111111111);
@@ -286,15 +279,18 @@ int main(int argc, char **argv) {
     ioctl(perf_events[0].fd[0], PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP);
     ioctl(perf_events[0].fd[0], PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP);
   }
-  printf("Logging start\n");
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
   while (sentinel) {
     // Read from INA3221
     int shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
-    shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
-    float ch1_amp = shunt_to_amp(shunt1);
+    int shunt2 = i2c_smbus_read_word_data(i2c, REG_DATA_ch2);
+    int shunt3 = i2c_smbus_read_word_data(i2c, REG_DATA_ch3);
+    // change endian, strip last 3 bits provide raw value
+    float ch1_amp = shunt_to_amp(change_endian(shunt1) / 8);
+    float ch2_amp = shunt_to_amp(change_endian(shunt2) / 8);
+    float ch3_amp = shunt_to_amp(change_endian(shunt3) / 8);
 
     // Read from perf counters
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++)
@@ -321,15 +317,16 @@ int main(int argc, char **argv) {
       }
     }
 
+    // Read disk IO information
     read_sysfs_file_stat_work("/sys/block/mmcblk0/stat", &io_stats);
 
     clock_gettime(CLOCK_MONOTONIC_RAW, &counter);
 
     // Print out current and perf data to file
-    fprintf(fd, "%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
-    fprintf(fd, "%f", ch1_amp);
+    printf("%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
+    printf("%f,%f,%f", ch1_amp, ch2_amp, ch3_amp);
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
-      fprintf(fd, ",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
+      printf(",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
         perf_events[cpu].cpu_cycles,
         perf_events[cpu].insns,
         perf_events[cpu].cache_hit,
@@ -339,10 +336,10 @@ int main(int argc, char **argv) {
         perf_events[cpu].bus_cycles,
         perf_events[cpu].cpu_freq);
     }
-    fprintf(fd, ",%lu,%lu",
+    printf(",%lu,%lu",
       io_stats.rd_ios - io_stats_last.rd_ios,
       io_stats.wr_ios - io_stats_last.wr_ios);
-    fprintf(fd, "\n");
+    printf("\n");
 
     // Reset and restart perf counters
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
@@ -357,13 +354,10 @@ int main(int argc, char **argv) {
   }
 
   close(i2c);
-  printf("GPIO close\n");
 
   for (int i = sysconf(_SC_NPROCESSORS_ONLN); i >= 0; i--)
     for (int it = 0; it < NUM_EVENTS; it++)
       close(perf_events[i].fd[it]);
-
-  printf("Perf events closed\n");
 
   return 0;
 }
