@@ -323,22 +323,20 @@ int main(int argc, char **argv) {
     clock_gettime(CLOCK_MONOTONIC_RAW, &counter);
 
     // Print out current and perf data to file
-    printf("%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
+    int usecs_elapsed = (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000;
     printf("%f,%f,%f", ch1_amp, ch2_amp, ch3_amp);
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
-      printf(",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
-        perf_events[cpu].cpu_cycles,
-        perf_events[cpu].insns,
-        perf_events[cpu].cache_hit,
-        perf_events[cpu].cache_miss,
-        perf_events[cpu].br_insns,
-        perf_events[cpu].br_miss,
-        perf_events[cpu].bus_cycles,
+      printf(",%llu,%llu,%llu,%llu,%llu,%u",
+        perf_events[cpu].cpu_cycles / usecs_elapsed,
+        perf_events[cpu].insns / usecs_elapsed,
+        (perf_events[cpu].cache_hit - perf_events[cpu].cache_miss) / perf_events[cpu].cache_hit,
+        perf_events[cpu].br_miss / perf_events[cpu].br_insns,
+        perf_events[cpu].bus_cycles / usecs_elapsed,
         perf_events[cpu].cpu_freq);
     }
     printf(",%lu,%lu",
-      io_stats.rd_ios - io_stats_last.rd_ios,
-      io_stats.wr_ios - io_stats_last.wr_ios);
+      io_stats.rd_ios - io_stats_last.rd_ios / usecs_elapsed,
+      io_stats.wr_ios - io_stats_last.wr_ios / usecs_elapsed);
     printf("\n");
 
     // Reset and restart perf counters
