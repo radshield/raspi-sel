@@ -2,10 +2,10 @@
 
 import argparse
 import collections
-import joblib
+import pickle
 import subprocess
 
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import SGDRegressor
 
 parser = argparse.ArgumentParser(prog='raspi-sel',
                                  description='Latchup Detector for Raspberry Pi')
@@ -44,6 +44,11 @@ def runtime(file_location, target_pid):
     pass
 
 def train_model(file_location):
+    model = SGDRegressor()
+    for freq in ['600000', '700000', '800000', '900000', '1000000']:
+        for 
+        test_load = subprocess.Popen(test['command'].split(' '))
+    pickle.dump(model, open(file_location, 'wb'))
     pass
 
 def main():
