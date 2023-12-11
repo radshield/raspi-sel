@@ -14,8 +14,8 @@ def load_model(location):
 
 
 # Make a prediction on the loaded model
-def test_model(conn, model):
-    feature_values = conn.decode().split(",")
+def test_model(input_features, model):
+    feature_values = input_features.decode().split(",")
     if(len(feature_values) != n_features):
         return -1
 

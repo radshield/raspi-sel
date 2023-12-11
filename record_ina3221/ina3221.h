@@ -21,7 +21,7 @@ private:
 public:
 	INA3221();
 	~INA3221();
-	std::string read_currents();
+	std::tuple<double, double, double> read_currents();
 };
 
 #endif // INA3221_H

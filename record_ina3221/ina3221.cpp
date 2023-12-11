@@ -1,6 +1,7 @@
 #include "ina3221.h"
 #include <sstream>
 #include <fcntl.h>
+#include <tuple>
 #include <unistd.h>
 
 inline unsigned int change_endian(unsigned int x) {
@@ -8,13 +9,15 @@ inline unsigned int change_endian(unsigned int x) {
   return ((ptr[0] << 8) | ptr[1]);
 }
 
-inline float shunt_to_amp(int shunt) {
+inline double shunt_to_amp(int shunt) {
+  double amp1mv;
+
   // sign change for negative value (bit 13 is sign)
   if (shunt > 4096)
     shunt = -(8192 - shunt);
 
   // shunt raw value to mv (40μV datasheet)
-  float amp1mv = 0.0004 * shunt;
+  amp1mv = 0.0004 * shunt;
 
   // without external shunt R on device is 0.1 ohm
   return amp1mv / 0.1;
@@ -43,9 +46,9 @@ INA3221::~INA3221() {
   close(i2c);
 }
 
-std::string INA3221::read_currents() {
-  std::stringstream ret;
+std::tuple<double, double, double> INA3221::read_currents() {
   int shunt1, shunt2, shunt3;
+  double curr_ch1, curr_ch2, curr_ch3;
 
   // Read from INA3221
   shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
@@ -53,9 +56,9 @@ std::string INA3221::read_currents() {
   shunt3 = i2c_smbus_read_word_data(i2c, REG_DATA_ch3);
 
   // change endian, strip last 3 bits provide raw value
-  ret << shunt_to_amp(change_endian(shunt1) / 8) << ",";
-  ret << shunt_to_amp(change_endian(shunt2) / 8) << ",";
-  ret << shunt_to_amp(change_endian(shunt3) / 8);
+  curr_ch1 = shunt_to_amp(change_endian(shunt1) / 8);
+  curr_ch2 = shunt_to_amp(change_endian(shunt2) / 8);
+  curr_ch3 = shunt_to_amp(change_endian(shunt3) / 8);
 
-  return ret.str();
+  return std::make_tuple(curr_ch1, curr_ch2, curr_ch3);
 }

@@ -10,7 +10,7 @@ private:
   PyObject *ml_model;
   PyObject *load_func, *test_func;
 public:
-  int analyze_conn(const std::string &in);
+  std::tuple<double, double, double> test_model(const std::string &in);
   explicit Model(std::string &load_model);
   ~Model();
 };

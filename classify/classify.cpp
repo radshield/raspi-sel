@@ -1,24 +1,31 @@
 #include "classify.h"
 #include <string>
+#include <tuple>
 
 /**
  * Checks if a connection is an attack or not
  * @param in CSV string from leader_session
  * @return chance of attack from 0 to 1
  */
-int Model::analyze_conn(const std::string &in) {
+std::tuple<double, double, double> Model::test_model(const std::string &in) {
+  double r1, r2, r3;
+  PyObject *conn, *ret;
+
   Py_XINCREF(ml_model);
 
-  PyObject *conn = PyTuple_New(2);
+  conn = PyTuple_New(2);
   PyTuple_SetItem(conn, 0, PyBytes_FromString(in.c_str()));
   PyTuple_SetItem(conn, 1, ml_model);
 
-  PyObject *ret = PyObject_CallObject(test_func, conn);
-  int r = static_cast<int>(PyLong_AsLong(ret));
+  ret = PyObject_CallObject(test_func, conn);
+  r1 = PyLong_AsDouble(PyTuple_GetItem(ret, 0));
+  r2 = PyLong_AsDouble(PyTuple_GetItem(ret, 1));
+  r3 = PyLong_AsDouble(PyTuple_GetItem(ret, 2));
 
   Py_XDECREF(conn);
   Py_XDECREF(ret);
-  return r;
+
+  return std::make_tuple(r1, r2, r3);
 }
 
 // Close references to Python objects
@@ -30,17 +37,18 @@ Model::~Model() {
 
 // Loads Python objects needed to do linear regression
 Model::Model(std::string &load_model) {
+  PyObject *module, *str;
   Py_Initialize();
 
   PyRun_SimpleString("import sys");
   PyRun_SimpleString("import os");
   PyRun_SimpleString("sys.path.append(os.getcwd())");
-  PyObject *module = PyImport_Import(PyUnicode_DecodeFSDefault("classify.classify"));
+  module = PyImport_Import(PyUnicode_DecodeFSDefault("classify.classify"));
 
   load_func = PyObject_GetAttrString(module, "load_model");
   test_func = PyObject_GetAttrString(module, "test_model");
 
-  PyObject *str = PyTuple_New(1);
+  str = PyTuple_New(1);
   PyTuple_SetItem(str, 0, Py_BuildValue("y#", load_model.c_str(), load_model.size()));
   ml_model = PyObject_CallObject(load_func, str);
 
