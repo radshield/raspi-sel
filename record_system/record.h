@@ -2,17 +2,13 @@
 #define RECORD_H
 
 #include <cstdint>
-
-// INA3221 constants
-#define DEVICE_ID 0x40
-#define SIGNATURE 8242
-#define REG_RESET 0x00
-#define REG_DATA_ch1 0x01
-#define REG_DATA_ch2 0x03
-#define REG_DATA_ch3 0x05
+#include <ctime>
+#include <string>
+#include <unistd.h>
 
 // Perf helpers
 #define NUM_EVENTS 7
+#define NUM_CPUS 4
 
 struct read_format {
     uint64_t nr;
@@ -54,5 +50,20 @@ struct io_stats {
   unsigned int  rq_ticks   __attribute__ ((packed));
 };
 
+class RecordSystem {
+private:
+  perf_ptr perf_events[NUM_CPUS];
+  io_stats io_stats_last, io_stats_curr;
+  char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
+  read_format* rf = (read_format*) buf;
+  timespec time_now, time_last;
 
-#endif
+  perf_ptr init_perf_event(int cpu);
+  int read_sysfs_file_stat_work(char *filename, struct io_stats *ios);
+public:
+  RecordSystem();
+  std::string get_system_info();
+  ~RecordSystem();
+};
+
+#endif // RECORD_H
