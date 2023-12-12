@@ -9,20 +9,20 @@
  */
 std::tuple<double, double, double> Model::test_model(const std::string &in) {
   double r1, r2, r3;
-  PyObject *conn, *ret;
+  PyObject *epoch, *ret;
 
   Py_XINCREF(ml_model);
 
-  conn = PyTuple_New(2);
-  PyTuple_SetItem(conn, 0, PyBytes_FromString(in.c_str()));
-  PyTuple_SetItem(conn, 1, ml_model);
+  epoch = PyTuple_New(2);
+  PyTuple_SetItem(epoch, 0, PyBytes_FromString(in.c_str()));
+  PyTuple_SetItem(epoch, 1, ml_model);
 
-  ret = PyObject_CallObject(test_func, conn);
+  ret = PyObject_CallObject(test_func, epoch);
   r1 = PyLong_AsDouble(PyTuple_GetItem(ret, 0));
   r2 = PyLong_AsDouble(PyTuple_GetItem(ret, 1));
   r3 = PyLong_AsDouble(PyTuple_GetItem(ret, 2));
 
-  Py_XDECREF(conn);
+  Py_XDECREF(epoch);
   Py_XDECREF(ret);
 
   return std::make_tuple(r1, r2, r3);
@@ -43,7 +43,7 @@ Model::Model(std::string &load_model) {
   PyRun_SimpleString("import sys");
   PyRun_SimpleString("import os");
   PyRun_SimpleString("sys.path.append(os.getcwd())");
-  module = PyImport_Import(PyUnicode_DecodeFSDefault("classify.classify"));
+  module = PyImport_Import(PyUnicode_DecodeFSDefault("classify.model"));
 
   load_func = PyObject_GetAttrString(module, "load_model");
   test_func = PyObject_GetAttrString(module, "test_model");

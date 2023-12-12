@@ -5,7 +5,7 @@
 
 #include "classify.h"
 #include "ina3221.h"
-#include "record.h"
+#include "record_system.h"
 
 static volatile bool sentinel = true;
 

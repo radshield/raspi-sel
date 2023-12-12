@@ -3,10 +3,6 @@
 
 #include <string>
 
-#include <i2c/smbus.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-
 // INA3221 constants
 #define DEVICE_ID 0x40
 #define SIGNATURE 8242

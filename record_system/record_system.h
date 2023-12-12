@@ -1,5 +1,5 @@
-#ifndef RECORD_H
-#define RECORD_H
+#ifndef RECORD_SYSTEM_H
+#define RECORD_SYSTEM_H
 
 #include <cstdint>
 #include <ctime>
@@ -9,14 +9,6 @@
 // Perf helpers
 #define NUM_EVENTS 7
 #define NUM_CPUS 4
-
-struct read_format {
-    uint64_t nr;
-    struct {
-        uint64_t value;
-        uint64_t id;
-    } values[];
-};
 
 struct perf_ptr {
   int fd[NUM_EVENTS], cpu_freq;
@@ -54,12 +46,10 @@ class RecordSystem {
 private:
   perf_ptr perf_events[NUM_CPUS];
   io_stats io_stats_last, io_stats_curr;
-  char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
-  read_format* rf = (read_format*) buf;
   timespec time_now, time_last;
 
   perf_ptr init_perf_event(int cpu);
-  int read_sysfs_file_stat_work(char *filename, struct io_stats *ios);
+  void read_sysfs_file_stat_work(std::string filename);
 public:
   RecordSystem();
   std::string get_system_info();

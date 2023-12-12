@@ -1,8 +1,16 @@
 #include "ina3221.h"
-#include <sstream>
-#include <fcntl.h>
+
+#include <stdexcept>
 #include <tuple>
+
+#include <fcntl.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
+
+extern "C" {
+  #include <linux/i2c-dev.h>
+  #include <i2c/smbus.h>
+}
 
 inline unsigned int change_endian(unsigned int x) {
   unsigned char *ptr = (unsigned char *)&x;
@@ -27,16 +35,16 @@ INA3221::INA3221() {
   // Setup I2C communication
   i2c = open("/dev/i2c-1", O_RDWR);
   if (i2c == -1)
-    return -2;
+    throw std::runtime_error("Failed to open I2C interface");
 
   if(ioctl(i2c, I2C_SLAVE, 0x40) < 0) {
     close(i2c);
-    return -4;
+    throw std::runtime_error("Failed to open target I2C device");
   }
 
   int check_vendor_id = i2c_smbus_read_word_data(i2c, 0xFF);
   if (check_vendor_id != SIGNATURE)
-    return -3;
+    throw std::runtime_error("I2C device is not INA3221");
 
   // Switch device to measurement mode
   i2c_smbus_write_word_data(i2c, REG_RESET, 0b1111111111111111);

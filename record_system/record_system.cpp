@@ -1,5 +1,9 @@
-#include "record.h"
+#include "record_system.h"
+
+#include <cerrno>
+#include <cstring>
 #include <sstream>
+#include <stdexcept>
 
 #include <cpufreq.h>
 #include <linux/perf_event.h>
@@ -12,7 +16,6 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   perf_ptr ret;
 
   // Count perf events
-  memset(&pea, 0, sizeof(struct perf_event_attr));
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_CPU_CYCLES;
@@ -20,10 +23,18 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
-  ret.fd[0] = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
-  ioctl(ret.fd[0], PERF_EVENT_IOC_ID, &(ret.id[0]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
+  ret.fd[0] = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  ioctl(ret.fd[0], PERF_EVENT_IOC_ID, &(ret.id[0]));
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_INSTRUCTIONS;
@@ -31,10 +42,19 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[1] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[1], PERF_EVENT_IOC_ID, &(ret.id[1]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_CACHE_REFERENCES;
@@ -42,10 +62,19 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[2] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[2], PERF_EVENT_IOC_ID, &(ret.id[2]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_CACHE_MISSES;
@@ -53,10 +82,19 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[3] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[3], PERF_EVENT_IOC_ID, &(ret.id[3]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_BRANCH_INSTRUCTIONS;
@@ -64,21 +102,38 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[4] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[4], PERF_EVENT_IOC_ID, &(ret.id[4]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
-  pea.type = PERF_TYPE_HARDWARE;
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_BRANCH_MISSES;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[5] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[5], PERF_EVENT_IOC_ID, &(ret.id[5]));
 
-  memset(&pea, 0, sizeof(struct perf_event_attr));
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
+  pea = {};
   pea.type = PERF_TYPE_HARDWARE;
   pea.size = sizeof(struct perf_event_attr);
   pea.config = PERF_COUNT_HW_BUS_CYCLES;
@@ -86,13 +141,22 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.exclude_kernel = 0;
   pea.exclude_hv = 0;
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+
   ret.fd[6] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
+
   ioctl(ret.fd[6], PERF_EVENT_IOC_ID, &(ret.id[6]));
+
+  if (errno != 0)
+    throw std::runtime_error(std::string("Failed to init perf events, errno=") +
+                             std::strerror(errno));
 
   return ret;
 }
 
-void RecordSystem::read_sysfs_file_stat_work(char *filename) {
+void RecordSystem::read_sysfs_file_stat_work(std::string filename) {
   FILE *fp;
   int i;
   unsigned int ios_pgr, tot_ticks, rq_ticks, wr_ticks, dc_ticks, fl_ticks;
@@ -101,8 +165,8 @@ void RecordSystem::read_sysfs_file_stat_work(char *filename) {
   unsigned long dc_ios, dc_merges, dc_sec, fl_ios;
 
   // Try to read given stat file
-  if ((fp = fopen(filename, "r")) == NULL)
-    return nullptr;
+  if ((fp = fopen(filename.c_str(), "r")) == NULL)
+    throw std::runtime_error("Failed to open disk stat file");
 
   i = fscanf(
       fp, "%lu %lu %lu %lu %lu %lu %lu %u %u %u %u %lu %lu %lu %u %lu %u",
@@ -110,46 +174,44 @@ void RecordSystem::read_sysfs_file_stat_work(char *filename) {
       &wr_ios, &wr_merges, &wr_sec, &wr_ticks, &ios_pgr, &tot_ticks, &rq_ticks,
       &dc_ios, &dc_merges, &dc_sec, &dc_ticks, &fl_ios, &fl_ticks);
 
-  memset(&sdev, 0, sizeof(struct io_stats));
+  io_stats_curr = {};
 
   if (i >= 11) {
     // Device or partition
-    sdev.rd_ios = rd_ios;
-    sdev.rd_merges = rd_merges_or_rd_sec;
-    sdev.rd_sectors = rd_sec_or_wr_ios;
-    sdev.rd_ticks = (unsigned int)rd_ticks_or_wr_sec;
-    sdev.wr_ios = wr_ios;
-    sdev.wr_merges = wr_merges;
-    sdev.wr_sectors = wr_sec;
-    sdev.wr_ticks = wr_ticks;
-    sdev.ios_pgr = ios_pgr;
-    sdev.tot_ticks = tot_ticks;
-    sdev.rq_ticks = rq_ticks;
+    io_stats_curr.rd_ios = rd_ios;
+    io_stats_curr.rd_merges = rd_merges_or_rd_sec;
+    io_stats_curr.rd_sectors = rd_sec_or_wr_ios;
+    io_stats_curr.rd_ticks = (unsigned int)rd_ticks_or_wr_sec;
+    io_stats_curr.wr_ios = wr_ios;
+    io_stats_curr.wr_merges = wr_merges;
+    io_stats_curr.wr_sectors = wr_sec;
+    io_stats_curr.wr_ticks = wr_ticks;
+    io_stats_curr.ios_pgr = ios_pgr;
+    io_stats_curr.tot_ticks = tot_ticks;
+    io_stats_curr.rq_ticks = rq_ticks;
 
     if (i >= 15) {
       // Discard I/O
-      sdev.dc_ios = dc_ios;
-      sdev.dc_merges = dc_merges;
-      sdev.dc_sectors = dc_sec;
-      sdev.dc_ticks = dc_ticks;
+      io_stats_curr.dc_ios = dc_ios;
+      io_stats_curr.dc_merges = dc_merges;
+      io_stats_curr.dc_sectors = dc_sec;
+      io_stats_curr.dc_ticks = dc_ticks;
     }
 
     if (i >= 17) {
       // Flush I/O
-      sdev.fl_ios = fl_ios;
-      sdev.fl_ticks = fl_ticks;
+      io_stats_curr.fl_ios = fl_ios;
+      io_stats_curr.fl_ticks = fl_ticks;
     }
   } else if (i == 4) {
     // Partition without extended statistics
-    sdev.rd_ios = rd_ios;
-    sdev.rd_sectors = rd_merges_or_rd_sec;
-    sdev.wr_ios = rd_sec_or_wr_ios;
-    sdev.wr_sectors = rd_ticks_or_wr_sec;
+    io_stats_curr.rd_ios = rd_ios;
+    io_stats_curr.rd_sectors = rd_merges_or_rd_sec;
+    io_stats_curr.wr_ios = rd_sec_or_wr_ios;
+    io_stats_curr.wr_sectors = rd_ticks_or_wr_sec;
   }
 
   fclose(fp);
-
-  return sdev;
 }
 
 RecordSystem::RecordSystem() {
@@ -159,7 +221,8 @@ RecordSystem::RecordSystem() {
 
   // Initialize time and disk info
   clock_gettime(CLOCK_MONOTONIC_RAW, &time_last);
-  read_sysfs_file_stat_work("/sys/block/mmcblk0/stat", &io_stats_last);
+  this->read_sysfs_file_stat_work("/sys/block/mmcblk0/stat");
+  this->io_stats_last = this->io_stats_curr;
 }
 
 // Close perf events
@@ -172,7 +235,15 @@ RecordSystem::~RecordSystem() {
 // Read system info to string
 std::string RecordSystem::get_system_info() {
   int usecs_elapsed;
-  std::sstream ret;
+  std::stringstream ret;
+  char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
+  struct read_format {
+    uint64_t nr;
+    struct {
+      uint64_t value;
+      uint64_t id;
+    } values[];
+  } *rf = (read_format *)buf;
 
   // Read from perf counters
   for (int cpu = 0; cpu < NUM_CPUS; cpu++)
@@ -201,25 +272,29 @@ std::string RecordSystem::get_system_info() {
   }
 
   // Read disk IO information
-  read_sysfs_file_stat_work("/sys/block/mmcblk0/stat", &io_stats_curr);
+  read_sysfs_file_stat_work("/sys/block/mmcblk0/stat");
 
   // Get latest time and calculate measurement interval
   clock_gettime(CLOCK_MONOTONIC_RAW, &time_now);
-  usecs_elapsed = (time_now.tv_sec - time_last.tv_sec) * 1000000 + (time_now.tv_nsec - time_now.tv_nsec) / 1000;
+  usecs_elapsed = (time_now.tv_sec - time_last.tv_sec) * 1000000 +
+                  (time_now.tv_nsec - time_now.tv_nsec) / 1000;
 
   // Output rate-based events
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
-    ret << (double) perf_events[cpu].cpu_cycles / usecs_elapsed << ",";
-    ret << (double) perf_events[cpu].insns / usecs_elapsed << ",";
-    ret << (double) (perf_events[cpu].cache_hit - perf_events[cpu].cache_miss) / perf_events[cpu].cache_hit << ",";
-    ret << (double) perf_events[cpu].br_miss / perf_events[cpu].br_insns << ",";
-    ret << (double) perf_events[cpu].bus_cycles / usecs_elapsed << ",";
-    ret << (double) perf_events[cpu].cpu_freq << ",";
+    ret << (double)perf_events[cpu].cpu_cycles / usecs_elapsed << ",";
+    ret << (double)perf_events[cpu].insns / usecs_elapsed << ",";
+    ret << (double)(perf_events[cpu].cache_hit - perf_events[cpu].cache_miss) /
+               perf_events[cpu].cache_hit
+        << ",";
+    ret << (double)perf_events[cpu].br_miss / perf_events[cpu].br_insns << ",";
+    ret << (double)perf_events[cpu].bus_cycles / usecs_elapsed << ",";
+    ret << (double)perf_events[cpu].cpu_freq << ",";
   }
 
   // Output disk read/write rates
-  ret << (double) (io_stats.rd_ios - io_stats_last.rd_ios) / usecs_elapsed << ",";
-  ret << (double) (io_stats.wr_ios - io_stats_last.wr_ios) / usecs_elapsed;
+  ret << (double)(io_stats_curr.rd_ios - io_stats_last.rd_ios) / usecs_elapsed
+      << ",";
+  ret << (double)(io_stats_curr.wr_ios - io_stats_last.wr_ios) / usecs_elapsed;
 
   // Reset and restart perf counters
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
