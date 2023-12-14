@@ -277,7 +277,7 @@ std::string RecordSystem::get_system_info() {
   // Get latest time and calculate measurement interval
   clock_gettime(CLOCK_MONOTONIC_RAW, &time_now);
   usecs_elapsed = (time_now.tv_sec - time_last.tv_sec) * 1000000 +
-                  (time_now.tv_nsec - time_now.tv_nsec) / 1000;
+                  (time_now.tv_nsec - time_last.tv_nsec) / 1000;
 
   // Output rate-based events
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
