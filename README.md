@@ -4,40 +4,22 @@ This repo stores scratch files for benchmarking and measurement of current draw 
 
 ## Requirements
 
-* Python 3.6 or higher with pip
-* virtualenv to keep dependencies separate (optional)
+* CMake 3.16+
+* ninja-build
+* `libi2c-dev`
+* `libcpupower-dev`
 
-## Setup
+## Building Recording Tool
 
 ```bash
-virtualenv venv && ./venv/bin/activate
-pip3 install -r requirements.txt
+cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+ninja -C build
 ```
 
 ## Usage
 
-Call either `ina169_measurement.py` or `ina3221_measurement.py` depending on which chip is being used to measure current draw. It takes a few arguments:
+The recording script needs to access `perf` and `/dev` to record system and INA3221 statistics. Thus, you'll probably want to run it with sudo:
 
-* `--data-rate`: Number of measurements to record per second. This defaults to `100`, and should not exceed the polling rate of the measuring IC
-* The path to one input file, which describes the test(s) to be run. The format is described in the following section.
-
-## Configuration
-
-The layout of a configuration JSON file should look like the following:
-
-```json
-{
-  "runs": [
-    {
-      "commands": [],
-      "run_time": 5
-    }
-  ]
-}
+```bash
+sudo build/bin/record OUTPUT_FILENAME
 ```
-
-The `runs` object contains an array of every test to be run. Each element is an object with two attributes:
-
-* `commands` is a set of commands to be executed in parallel. You can leave it black for it to not execute anything
-* `run_time` is a timeout value for the maximum time the above commands get run for, after which the commands are killed and the next set of tests, if any, are started.
-
