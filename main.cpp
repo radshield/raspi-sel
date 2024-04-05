@@ -1,5 +1,6 @@
 #include <csignal>
 #include <cstdio>
+#include <string>
 #include <tuple>
 #include <unistd.h>
 
@@ -15,8 +16,8 @@ void int_handler(int signum) {
 
 int main(int argc, char **argv) {
   std::string model_file;
-  std::tuple<double, double, double> predicted, actual;
-  int target_pid;
+  std::tuple<double, double> predicted, actual;
+  // int target_pid;
 
   if (argc != 3) {
     printf("Usage: %s MODEL_FILE TARGET_PID\n", argv[0]);
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
     predicted = classify_model.test_model(system_stats.get_system_info());
     actual = current_stats.read_currents();
 
-    usleep(50);
+    usleep(5000);
   }
 
   return 0;
