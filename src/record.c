@@ -1,10 +1,10 @@
 #include <cpufreq.h>
 #include <fcntl.h>
 #include <i2c/smbus.h>
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
-#include <linux/perf_event.h>
 #include <linux/hw_breakpoint.h>
+#include <linux/i2c-dev.h>
+#include <linux/i2c.h>
+#include <linux/perf_event.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -31,48 +31,40 @@
 static volatile bool sentinel = 1;
 
 struct read_format {
-    uint64_t nr;
-    struct {
-        uint64_t value;
-        uint64_t id;
-    } values[];
+  uint64_t nr;
+  struct {
+    uint64_t value;
+    uint64_t id;
+  } values[];
 };
 
 struct perf_ptr {
   int fd[NUM_EVENTS], cpu_freq;
-  uint64_t id[NUM_EVENTS],
-           cpu_cycles,
-           insns,
-           cache_hit,
-           cache_miss,
-           br_insns,
-           br_miss,
-           bus_cycles;
+  uint64_t id[NUM_EVENTS], cpu_cycles, insns, cache_hit, cache_miss, br_insns,
+      br_miss, bus_cycles;
 };
 
 struct io_stats {
-  unsigned long rd_sectors __attribute__ ((aligned (8)));
-  unsigned long wr_sectors __attribute__ ((packed));
-  unsigned long dc_sectors __attribute__ ((packed));
-  unsigned long rd_ios     __attribute__ ((packed));
-  unsigned long rd_merges  __attribute__ ((packed));
-  unsigned long wr_ios     __attribute__ ((packed));
-  unsigned long wr_merges  __attribute__ ((packed));
-  unsigned long dc_ios     __attribute__ ((packed));
-  unsigned long dc_merges  __attribute__ ((packed));
-  unsigned long fl_ios     __attribute__ ((packed));
-  unsigned int  rd_ticks   __attribute__ ((packed));
-  unsigned int  wr_ticks   __attribute__ ((packed));
-  unsigned int  dc_ticks   __attribute__ ((packed));
-  unsigned int  fl_ticks   __attribute__ ((packed));
-  unsigned int  ios_pgr    __attribute__ ((packed));
-  unsigned int  tot_ticks  __attribute__ ((packed));
-  unsigned int  rq_ticks   __attribute__ ((packed));
+  unsigned long rd_sectors __attribute__((aligned(8)));
+  unsigned long wr_sectors __attribute__((packed));
+  unsigned long dc_sectors __attribute__((packed));
+  unsigned long rd_ios __attribute__((packed));
+  unsigned long rd_merges __attribute__((packed));
+  unsigned long wr_ios __attribute__((packed));
+  unsigned long wr_merges __attribute__((packed));
+  unsigned long dc_ios __attribute__((packed));
+  unsigned long dc_merges __attribute__((packed));
+  unsigned long fl_ios __attribute__((packed));
+  unsigned int rd_ticks __attribute__((packed));
+  unsigned int wr_ticks __attribute__((packed));
+  unsigned int dc_ticks __attribute__((packed));
+  unsigned int fl_ticks __attribute__((packed));
+  unsigned int ios_pgr __attribute__((packed));
+  unsigned int tot_ticks __attribute__((packed));
+  unsigned int rq_ticks __attribute__((packed));
 };
 
-void int_handler(int signum) {
-  sentinel = 0;
-}
+void int_handler(int signum) { sentinel = 0; }
 
 unsigned int change_endian(unsigned int x) {
   unsigned char *ptr = (unsigned char *)&x;
@@ -189,50 +181,49 @@ int read_sysfs_file_stat_work(char *filename, struct io_stats *ios) {
   if ((fp = fopen(filename, "r")) == NULL)
     return -1;
 
-  i = fscanf(fp, "%lu %lu %lu %lu %lu %lu %lu %u %u %u %u %lu %lu %lu %u %lu %u",
-       &rd_ios, &rd_merges_or_rd_sec, &rd_sec_or_wr_ios, &rd_ticks_or_wr_sec,
-       &wr_ios, &wr_merges, &wr_sec, &wr_ticks, &ios_pgr, &tot_ticks, &rq_ticks,
-       &dc_ios, &dc_merges, &dc_sec, &dc_ticks,
-       &fl_ios, &fl_ticks);
+  i = fscanf(
+      fp, "%lu %lu %lu %lu %lu %lu %lu %u %u %u %u %lu %lu %lu %u %lu %u",
+      &rd_ios, &rd_merges_or_rd_sec, &rd_sec_or_wr_ios, &rd_ticks_or_wr_sec,
+      &wr_ios, &wr_merges, &wr_sec, &wr_ticks, &ios_pgr, &tot_ticks, &rq_ticks,
+      &dc_ios, &dc_merges, &dc_sec, &dc_ticks, &fl_ios, &fl_ticks);
 
   memset(&sdev, 0, sizeof(struct io_stats));
 
   if (i >= 11) {
     // Device or partition
-    sdev.rd_ios     = rd_ios;
-    sdev.rd_merges  = rd_merges_or_rd_sec;
+    sdev.rd_ios = rd_ios;
+    sdev.rd_merges = rd_merges_or_rd_sec;
     sdev.rd_sectors = rd_sec_or_wr_ios;
-    sdev.rd_ticks   = (unsigned int) rd_ticks_or_wr_sec;
-    sdev.wr_ios     = wr_ios;
-    sdev.wr_merges  = wr_merges;
+    sdev.rd_ticks = (unsigned int)rd_ticks_or_wr_sec;
+    sdev.wr_ios = wr_ios;
+    sdev.wr_merges = wr_merges;
     sdev.wr_sectors = wr_sec;
-    sdev.wr_ticks   = wr_ticks;
-    sdev.ios_pgr    = ios_pgr;
-    sdev.tot_ticks  = tot_ticks;
-    sdev.rq_ticks   = rq_ticks;
+    sdev.wr_ticks = wr_ticks;
+    sdev.ios_pgr = ios_pgr;
+    sdev.tot_ticks = tot_ticks;
+    sdev.rq_ticks = rq_ticks;
 
     if (i >= 15) {
       // Discard I/O
-      sdev.dc_ios     = dc_ios;
-      sdev.dc_merges  = dc_merges;
+      sdev.dc_ios = dc_ios;
+      sdev.dc_merges = dc_merges;
       sdev.dc_sectors = dc_sec;
-      sdev.dc_ticks   = dc_ticks;
+      sdev.dc_ticks = dc_ticks;
     }
 
     if (i >= 17) {
       // Flush I/O
-      sdev.fl_ios     = fl_ios;
-      sdev.fl_ticks   = fl_ticks;
+      sdev.fl_ios = fl_ios;
+      sdev.fl_ticks = fl_ticks;
     }
-  }
-  else if (i == 4) {
+  } else if (i == 4) {
     // Partition without extended statistics
-    sdev.rd_ios     = rd_ios;
+    sdev.rd_ios = rd_ios;
     sdev.rd_sectors = rd_merges_or_rd_sec;
-    sdev.wr_ios     = rd_sec_or_wr_ios;
+    sdev.wr_ios = rd_sec_or_wr_ios;
     sdev.wr_sectors = rd_ticks_or_wr_sec;
   }
-  
+
   *ios = sdev;
 
   fclose(fp);
@@ -244,7 +235,7 @@ int main(int argc, char **argv) {
   struct io_stats io_stats, io_stats_last;
   struct perf_ptr perf_events[sysconf(_SC_NPROCESSORS_ONLN)];
   char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
-  struct read_format* rf = (struct read_format*) buf;
+  struct read_format *rf = (struct read_format *)buf;
   struct timespec start, counter;
 
   if (argc != 2) {
@@ -257,7 +248,7 @@ int main(int argc, char **argv) {
   if (i2c == -1)
     return -2;
 
-  if(ioctl(i2c, I2C_SLAVE, 0x40) < 0) {
+  if (ioctl(i2c, I2C_SLAVE, 0x41) < 0) {
     close(i2c);
     return -4;
   }
@@ -290,15 +281,30 @@ int main(int argc, char **argv) {
 
   clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
+  fprintf(fd,
+          "time,current_2,current_3,cpu_cycles_0,insns_0,cache_hit_0,cache_"
+          "miss_0,br_insns_0,br_miss_0,bus_cycles_0,freq_0,cpu_cycles_1,insns_"
+          "1,cache_hit_1,cache_miss_1,br_insns_1,br_miss_1,bus_cycles_1,freq_1,"
+          "cpu_cycles_2,insns_2,cache_hit_2,cache_miss_2,br_insns_2,br_miss_2,"
+          "bus_cycles_2,freq_2,cpu_cycles_3,insns_3,cache_hit_3,cache_miss_3,"
+          "br_insns_3,br_miss_3,bus_cycles_3,freq_3,rd_ios,wr_ios");
+
   while (sentinel) {
     // Read from INA3221
-    int shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
-    shunt1 = change_endian(shunt1) / 8; // change endian, strip last 3 bits provide raw value
-    float ch1_amp = shunt_to_amp(shunt1);
+    int shunt2 = i2c_smbus_read_word_data(i2c, REG_DATA_ch2);
+    shunt2 = change_endian(shunt2) /
+             8; // change endian, strip last 3 bits provide raw value
+    float ch2_amp = shunt_to_amp(shunt2);
+
+    int shunt3 = i2c_smbus_read_word_data(i2c, REG_DATA_ch3);
+    shunt3 = change_endian(shunt3) /
+             8; // change endian, strip last 3 bits provide raw value
+    float ch3_amp = shunt_to_amp(shunt3);
 
     // Read from perf counters
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++)
-      ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+      ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_DISABLE,
+            PERF_IOC_FLAG_GROUP);
 
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
       perf_events[cpu].cpu_freq = cpufreq_get(cpu);
@@ -326,22 +332,20 @@ int main(int argc, char **argv) {
     clock_gettime(CLOCK_MONOTONIC_RAW, &counter);
 
     // Print out current and perf data to file
-    fprintf(fd, "%ld,", (counter.tv_sec - start.tv_sec) * 1000000 + (counter.tv_nsec - start.tv_nsec) / 1000);
-    fprintf(fd, "%f", ch1_amp);
+    fprintf(fd, "%ld,",
+            (counter.tv_sec - start.tv_sec) * 1000000 +
+                (counter.tv_nsec - start.tv_nsec) / 1000);
+    fprintf(fd, "%f", ch2_amp);
+    fprintf(fd, "%f", ch3_amp);
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
       fprintf(fd, ",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
-        perf_events[cpu].cpu_cycles,
-        perf_events[cpu].insns,
-        perf_events[cpu].cache_hit,
-        perf_events[cpu].cache_miss,
-        perf_events[cpu].br_insns,
-        perf_events[cpu].br_miss,
-        perf_events[cpu].bus_cycles,
-        perf_events[cpu].cpu_freq);
+              perf_events[cpu].cpu_cycles, perf_events[cpu].insns,
+              perf_events[cpu].cache_hit, perf_events[cpu].cache_miss,
+              perf_events[cpu].br_insns, perf_events[cpu].br_miss,
+              perf_events[cpu].bus_cycles, perf_events[cpu].cpu_freq);
     }
-    fprintf(fd, ",%lu,%lu",
-      io_stats.rd_ios - io_stats_last.rd_ios,
-      io_stats.wr_ios - io_stats_last.wr_ios);
+    fprintf(fd, ",%lu,%lu", io_stats.rd_ios - io_stats_last.rd_ios,
+            io_stats.wr_ios - io_stats_last.wr_ios);
     fprintf(fd, "\n");
 
     // Reset and restart perf counters
@@ -353,7 +357,7 @@ int main(int argc, char **argv) {
     // Save previous io_stats value
     io_stats_last = io_stats;
 
-    usleep(10);
+    usleep(1000);
   }
 
   close(i2c);
