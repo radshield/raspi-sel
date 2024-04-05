@@ -8,9 +8,10 @@ set(CMAKE_AR llvm-ar)
 set(CMAKE_NM llvm-nm)
 set(CMAKE_RANLIB llvm-ranlib)
 
+set(CMAKE_FIND_ROOT_PATH "${CMAKE_CURRENT_LIST_DIR}/sysroot")
 set(TOOLCHAIN "${CMAKE_CURRENT_LIST_DIR}/arm-gnu-toolchain-12.3.rel1-x86_64-aarch64-none-linux-gnu")
-
 set(CMAKE_SYSROOT "${TOOLCHAIN}/aarch64-none-linux-gnu/libc")
+
 set(CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN "${TOOLCHAIN}")
 set(CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN "${TOOLCHAIN}")
 
