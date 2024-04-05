@@ -238,8 +238,8 @@ int main(int argc, char **argv) {
   struct read_format *rf = (struct read_format *)buf;
   struct timespec start, counter;
 
-  if (argc != 2) {
-    printf("Usage: %s LOGFILE\n", argv[0]);
+  if (argc != 3) {
+    printf("Usage: %s LOGFILE RUNTIME\n", argv[0]);
     return -1;
   }
 
@@ -289,7 +289,9 @@ int main(int argc, char **argv) {
           "bus_cycles_2,freq_2,cpu_cycles_3,insns_3,cache_hit_3,cache_miss_3,"
           "br_insns_3,br_miss_3,bus_cycles_3,freq_3,rd_ios,wr_ios");
 
-  while (sentinel) {
+  int runtime = atoi(argv[2]);
+
+  for (int i = 0; i < runtime * 1000; i++) {
     // Read from INA3221
     int shunt2 = i2c_smbus_read_word_data(i2c, REG_DATA_ch2);
     shunt2 = change_endian(shunt2) /
