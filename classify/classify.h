@@ -7,7 +7,8 @@
 
 struct data_point {
   perf_data perf_info;
-  std::tuple<double, double> current_info;
+  double curr;
+  double leech_curr;
 };
 
 class Model {
@@ -19,7 +20,7 @@ private:
 
 public:
   bool test_model();
-  void add_datapoint(const std::tuple<double, double> currents,
+  void add_datapoint(const std::tuple<double, double, double> currents,
                      const perf_data perf_info);
   explicit Model(std::string &load_model);
 };

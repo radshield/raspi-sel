@@ -1,8 +1,11 @@
 #include "classify.h"
 
+#include <algorithm>
 #include <fstream>
 #include <string>
 #include <tuple>
+
+bool compare_currs(data_point i, data_point j) { return i.curr < j.curr; }
 
 /**
  * Checks if a connection is an attack or not based on previous data in ring
@@ -13,9 +16,17 @@ bool Model::test_model() {
   double curr_diff = 0;
   for (auto data_it = data_fifo.begin(); data_it != data_fifo.end();
        data_it++) {
-    curr_diff += this->predict_current(data_it->perf_info,
-                                       std::get<1>(data_it->current_info)) -
-                 std::get<0>(data_it->current_info);
+    auto first_data_point =
+        data_it - 12 > data_fifo.begin() ? data_it - 12 : data_fifo.begin();
+    auto last_data_point =
+        data_it + 12 < data_fifo.end() ? data_it + 12 : data_fifo.end();
+    double running_min =
+        std::min_element(first_data_point, last_data_point, compare_currs)
+            ->curr;
+
+    curr_diff +=
+        this->predict_current(data_it->perf_info, data_it->leech_curr) -
+        running_min;
   }
 
   return curr_diff >= 0.06;
@@ -50,11 +61,12 @@ double Model::predict_current(perf_data perf_info, double leech_curr) {
  * @param currents input currents from INA3221
  * @param perf_info perf info from OS
  */
-void Model::add_datapoint(const std::tuple<double, double> currents,
+void Model::add_datapoint(const std::tuple<double, double, double> currents,
                           const perf_data perf_info) {
   data_point d;
   d.perf_info = perf_info;
-  d.current_info = currents;
+  d.curr = std::get<1>(currents);
+  d.leech_curr = std::get<2>(currents);
   this->data_fifo.push_back(d);
 }
 

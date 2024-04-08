@@ -1,7 +1,7 @@
 #ifndef INA3221_H
 #define INA3221_H
 
-#include <string>
+#include <tuple>
 
 // INA3221 constants
 #define DEVICE_ID 0x41

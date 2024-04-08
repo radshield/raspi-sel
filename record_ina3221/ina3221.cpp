@@ -54,15 +54,17 @@ INA3221::~INA3221() {
   close(i2c);
 }
 
-std::tuple<double, double> INA3221::read_currents() {
-  int shunt2, shunt3;
-  double curr_ch2, curr_ch3;
+std::tuple<double, double, double> INA3221::read_currents() {
+  int shunt1, shunt2, shunt3;
+  double curr_ch1, curr_ch2, curr_ch3;
 
   // Read from INA3221
+  shunt1 = i2c_smbus_read_word_data(i2c, REG_DATA_ch1);
   shunt2 = i2c_smbus_read_word_data(i2c, REG_DATA_ch2);
   shunt3 = i2c_smbus_read_word_data(i2c, REG_DATA_ch3);
 
   // change endian, strip last 3 bits provide raw value
+  curr_ch1 = shunt_to_amp(change_endian(shunt1) / 8);
   curr_ch2 = shunt_to_amp(change_endian(shunt2) / 8);
   curr_ch3 = shunt_to_amp(change_endian(shunt3) / 8);
 
