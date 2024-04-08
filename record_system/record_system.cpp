@@ -232,10 +232,12 @@ RecordSystem::~RecordSystem() {
       close(perf_events[i].fd[it]);
 }
 
-// Read system info to string
-std::string RecordSystem::get_system_info() {
+/**
+ * Read system metrics using perf to struct
+ * @return system info as a perf_data struct
+ */
+perf_data RecordSystem::get_system_info() {
   int usecs_elapsed;
-  std::stringstream ret;
   char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];
   struct read_format {
     uint64_t nr;
@@ -244,6 +246,7 @@ std::string RecordSystem::get_system_info() {
       uint64_t id;
     } values[];
   } *rf = (read_format *)buf;
+  perf_data ret;
 
   // Read from perf counters
   for (int cpu = 0; cpu < NUM_CPUS; cpu++)
@@ -281,20 +284,22 @@ std::string RecordSystem::get_system_info() {
 
   // Output rate-based events
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
-    ret << (double)perf_events[cpu].cpu_cycles / usecs_elapsed << ",";
-    ret << (double)perf_events[cpu].insns / usecs_elapsed << ",";
-    ret << (double)(perf_events[cpu].cache_hit - perf_events[cpu].cache_miss) /
-               perf_events[cpu].cache_hit
-        << ",";
-    ret << (double)perf_events[cpu].br_miss / perf_events[cpu].br_insns << ",";
-    ret << (double)perf_events[cpu].bus_cycles / usecs_elapsed << ",";
-    ret << (double)perf_events[cpu].cpu_freq << ",";
+    ret.cpu_cycles[cpu] = (double)perf_events[cpu].cpu_cycles / usecs_elapsed;
+    ret.insn_rate[cpu] = (double)perf_events[cpu].insns / usecs_elapsed;
+    ret.cache_hit_rate[cpu] =
+        (double)(perf_events[cpu].cache_hit - perf_events[cpu].cache_miss) /
+        perf_events[cpu].cache_hit;
+    ret.br_miss_rate[cpu] =
+        (double)perf_events[cpu].br_miss / perf_events[cpu].br_insns;
+    ret.bus_cycles[cpu] = (double)perf_events[cpu].bus_cycles / usecs_elapsed;
+    ret.cpu_freq[cpu] = (double)perf_events[cpu].cpu_freq;
   }
 
   // Output disk read/write rates
-  ret << (double)(io_stats_curr.rd_ios - io_stats_last.rd_ios) / usecs_elapsed
-      << ",";
-  ret << (double)(io_stats_curr.wr_ios - io_stats_last.wr_ios) / usecs_elapsed;
+  ret.rd_ios[cpu] =
+      (double)(io_stats_curr.rd_ios - io_stats_last.rd_ios) / usecs_elapsed;
+  ret.wr_ios[cpu] =
+      (double)(io_stats_curr.wr_ios - io_stats_last.wr_ios) / usecs_elapsed;
 
   // Reset and restart perf counters
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
@@ -306,5 +311,5 @@ std::string RecordSystem::get_system_info() {
   io_stats_last = io_stats_curr;
   time_last = time_now;
 
-  return ret.str();
+  return ret;
 }

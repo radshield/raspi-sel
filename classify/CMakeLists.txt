@@ -1,9 +1,10 @@
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Boost)
 
 add_library(classify classify.cpp)
 target_include_directories(classify PUBLIC
-	${Python3_INCLUDE_DIRS}
+	${CMAKE_CURRENT_LIST_DIR}/../record_system
+	${Boost_INCLUDE_DIR}
 )
 target_link_libraries(classify PUBLIC
-	${Python3_LIBRARIES}
+	${Boost_LIBRARIES}
 )
