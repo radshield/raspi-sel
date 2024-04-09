@@ -10,9 +10,7 @@
 
 static volatile bool sentinel = true;
 
-void int_handler(int signum) {
-  sentinel = false;
-}
+void int_handler(int signum) { sentinel = false; }
 
 int main(int argc, char **argv) {
   std::string model_file;
@@ -20,23 +18,27 @@ int main(int argc, char **argv) {
   // int target_pid;
 
   if (argc != 3) {
-    printf("Usage: %s MODEL_FILE TARGET_PID\n", argv[0]);
+    printf("Usage: %s MODEL_FILE\n", argv[0]);
     return -1;
   }
 
   signal(SIGINT, int_handler);
 
   model_file = argv[1];
-  target_pid = atoi(argv[2]);
 
   Model classify_model(model_file);
   RecordSystem system_stats;
   INA3221 current_stats;
 
   while (sentinel) {
-    predicted = classify_model.test_model(system_stats.get_system_info());
-    actual = current_stats.read_currents();
+    classify_model.add_datapoint(current_stats.read_currents(),
+                                 system_stats.get_system_info());
 
+    if (classify_model.test_model()) {
+      // Latchup detected, do thing
+    }
+
+    // Wait for 5000 seconds
     usleep(5000);
   }
 

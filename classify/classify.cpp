@@ -7,11 +7,6 @@
 
 bool compare_currs(data_point i, data_point j) { return i.curr < j.curr; }
 
-/**
- * Checks if a connection is an attack or not based on previous data in ring
- * buffer
- * @return whether a latchup is suspected or not
- */
 bool Model::test_model() {
   double curr_diff = 0;
   for (auto data_it = data_fifo.begin(); data_it != data_fifo.end();
@@ -32,12 +27,6 @@ bool Model::test_model() {
   return curr_diff >= 0.06;
 }
 
-/**
- * Predicts a current using the imported model
- * @param perf_info data collected from perf
- * @param leech_curr additional current draw from sensors
- * @return predicted current draw of the system
- */
 double Model::predict_current(perf_data perf_info, double leech_curr) {
   double pred = this->bias;
 
@@ -56,11 +45,6 @@ double Model::predict_current(perf_data perf_info, double leech_curr) {
   return pred;
 }
 
-/**
- * Adds a datapoint into the ring buffer
- * @param currents input currents from INA3221
- * @param perf_info perf info from OS
- */
 void Model::add_datapoint(const std::tuple<double, double, double> currents,
                           const perf_data perf_info) {
   data_point d;
@@ -70,10 +54,6 @@ void Model::add_datapoint(const std::tuple<double, double, double> currents,
   this->data_fifo.push_back(d);
 }
 
-/**
- * Loads a current model from file
- * @param load_model input model file location
- */
 Model::Model(std::string &load_model) {
   this->data_fifo.set_capacity(300);
 

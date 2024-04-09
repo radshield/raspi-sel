@@ -4,12 +4,12 @@
 #include <tuple>
 
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 extern "C" {
-  #include <linux/i2c-dev.h>
-  #include <i2c/smbus.h>
+#include <i2c/smbus.h>
+#include <linux/i2c-dev.h>
 }
 
 inline unsigned int change_endian(unsigned int x) {
@@ -37,7 +37,7 @@ INA3221::INA3221() {
   if (i2c == -1)
     throw std::runtime_error("Failed to open I2C interface");
 
-  if(ioctl(i2c, I2C_SLAVE, 0x40) < 0) {
+  if (ioctl(i2c, I2C_SLAVE, 0x40) < 0) {
     close(i2c);
     throw std::runtime_error("Failed to open target I2C device");
   }
@@ -50,9 +50,7 @@ INA3221::INA3221() {
   i2c_smbus_write_word_data(i2c, REG_RESET, 0b1111111111111111);
 }
 
-INA3221::~INA3221() {
-  close(i2c);
-}
+INA3221::~INA3221() { close(i2c); }
 
 std::tuple<double, double, double> INA3221::read_currents() {
   int shunt1, shunt2, shunt3;

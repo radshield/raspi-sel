@@ -47,13 +47,35 @@ private:
   io_stats io_stats_last, io_stats_curr;
   timespec time_now, time_last;
 
+  /**
+   * Create perf file descriptors for selected CPU
+   * @param cpu CPU number
+   * @return perf_ptr struct containing perf file descriptors
+   */
   perf_ptr init_perf_event(int cpu);
+
+  /**
+   * Read I/O stats from /sys/block/___/stat
+   * @param filename target stat file to read from
+   */
   void read_sysfs_file_stat_work(std::string filename);
 
 public:
+  /**
+   * Initialize perf counters and other file descriptors for system stats
+   */
   RecordSystem();
-  perf_data get_system_info();
+
+  /**
+   * Close perf counters and other file descriptors
+   */
   ~RecordSystem();
+
+  /**
+   * Read system metrics using perf to struct
+   * @return system info as a perf_data struct
+   */
+  perf_data get_system_info();
 };
 
 #endif // RECORD_H

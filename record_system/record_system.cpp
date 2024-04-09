@@ -232,10 +232,6 @@ RecordSystem::~RecordSystem() {
       close(perf_events[i].fd[it]);
 }
 
-/**
- * Read system metrics using perf to struct
- * @return system info as a perf_data struct
- */
 perf_data RecordSystem::get_system_info() {
   int usecs_elapsed;
   char buf[(NUM_EVENTS * 2 + 1) * sizeof(uint64_t)];

@@ -13,11 +13,24 @@
 
 class INA3221 {
 private:
-	int i2c;
+  int i2c;
+
 public:
-	INA3221();
-	~INA3221();
-	std::tuple<double, double, double> read_currents();
+  /**
+   * Initialize INA3221 current reader at I2C address 0x41
+   */
+  INA3221();
+
+  /**
+   * Close INA3221 current reader
+   */
+  ~INA3221();
+
+  /**
+   * Read current from initialized INA3221
+   * @return a set of tuples for the current on each channel
+   */
+  std::tuple<double, double, double> read_currents();
 };
 
 #endif // INA3221_H
