@@ -15,13 +15,13 @@ the Raspberry Pi Zero 2 W.
 
 ```bash
 # Install dependencies
-sudo apt-get install libcpufreq-dev linux-perf python3-dev
-virtualenv venv && ./venv/bin/activate
-pip3 install -r requirements.txt
+sudo apt-get install -y libcpupower-dev linux-perf libboost-dev libi2c-dev
+sudo apt-get install -y ninja-build cmake clang
 
 # Build recording tool
-cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-ninja -C build
+mkdir build && cd build
+CC=clang CXX=clang++ cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+ninja
 ```
 
 ## Usage
@@ -33,5 +33,5 @@ Once complete, the prototye can be run from the root directory of the project as
 so:
 
 ```bash
-./build/seelie model_to_use TARGET_PID
+./build/seelie model_to_use
 ```

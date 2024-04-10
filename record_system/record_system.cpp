@@ -25,7 +25,7 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[0] = syscall(__NR_perf_event_open, &pea, -1, cpu, -1, 0);
-  if (errno != 0)
+  if (ret.fd[0] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
@@ -44,12 +44,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[1] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[1] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[1], PERF_EVENT_IOC_ID, &(ret.id[1]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
@@ -64,12 +63,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[2] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[2] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[2], PERF_EVENT_IOC_ID, &(ret.id[2]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
@@ -84,12 +82,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[3] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[3] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[3], PERF_EVENT_IOC_ID, &(ret.id[3]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
@@ -104,12 +101,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[4] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[4] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[4], PERF_EVENT_IOC_ID, &(ret.id[4]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
@@ -123,12 +119,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[5] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[5] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[5], PERF_EVENT_IOC_ID, &(ret.id[5]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
@@ -143,12 +138,11 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
   pea.read_format = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
 
   ret.fd[6] = syscall(__NR_perf_event_open, &pea, -1, cpu, ret.fd[0], 0);
-  if (errno != 0)
+  if (ret.fd[6] == -1 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   ioctl(ret.fd[6], PERF_EVENT_IOC_ID, &(ret.id[6]));
-
   if (errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
