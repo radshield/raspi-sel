@@ -12,12 +12,12 @@
 #include <sys/time.h>
 
 perf_ptr RecordSystem::init_perf_event(int cpu) {
-  perf_event_attr pea = {};
+  struct perf_event_attr pea = {};
   perf_ptr ret;
 
   // Count perf events
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_CPU_CYCLES;
   pea.disabled = 1;
   pea.exclude_kernel = 0;
@@ -30,13 +30,13 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[0], PERF_EVENT_IOC_ID, &(ret.id[0]));
-  if (errno != 0)
+  if (ret.id[0] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_INSTRUCTIONS;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -49,13 +49,13 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[1], PERF_EVENT_IOC_ID, &(ret.id[1]));
-  if (errno != 0)
+  if (ret.id[1] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_CACHE_REFERENCES;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -68,13 +68,13 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[2], PERF_EVENT_IOC_ID, &(ret.id[2]));
-  if (errno != 0)
+  if (ret.id[2] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_CACHE_MISSES;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -87,13 +87,13 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[3], PERF_EVENT_IOC_ID, &(ret.id[3]));
-  if (errno != 0)
+  if (ret.id[3] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_BRANCH_INSTRUCTIONS;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -106,12 +106,12 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[4], PERF_EVENT_IOC_ID, &(ret.id[4]));
-  if (errno != 0)
+  if (ret.id[4] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_BRANCH_MISSES;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -124,13 +124,13 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[5], PERF_EVENT_IOC_ID, &(ret.id[5]));
-  if (errno != 0)
+  if (ret.id[5] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
   pea = {};
   pea.type = PERF_TYPE_HARDWARE;
-  pea.size = sizeof(struct perf_event_attr);
+  pea.size = sizeof(pea);
   pea.config = PERF_COUNT_HW_BUS_CYCLES;
   pea.disabled = 0;
   pea.exclude_kernel = 0;
@@ -143,7 +143,7 @@ perf_ptr RecordSystem::init_perf_event(int cpu) {
                              std::strerror(errno));
 
   ioctl(ret.fd[6], PERF_EVENT_IOC_ID, &(ret.id[6]));
-  if (errno != 0)
+  if (ret.id[6] == 0 && errno != 0)
     throw std::runtime_error(std::string("Failed to init perf events, errno=") +
                              std::strerror(errno));
 
