@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   std::tuple<double, double> predicted, actual;
   uint8_t trigger_count, latchup_count, output;
 
-  if (argc != 3) {
+  if (argc != 2) {
     printf("Usage: %s MODEL_FILE\n", argv[0]);
     return -1;
   }

@@ -9,18 +9,18 @@ bool compare_currs(data_point i, data_point j) { return i.curr < j.curr; }
 
 bool Model::test_model() {
   double curr_diff = 0;
-  for (auto data_it = data_fifo.begin(); data_it != data_fifo.end();
-       data_it++) {
-    auto first_data_point =
-        data_it - 12 > data_fifo.begin() ? data_it - 12 : data_fifo.begin();
-    auto last_data_point =
-        data_it + 12 < data_fifo.end() ? data_it + 12 : data_fifo.end();
-    double running_min =
-        std::min_element(first_data_point, last_data_point, compare_currs)
-            ->curr;
+  for (size_t i = data_fifo.size(); i < data_fifo.size(); i++) {
+    size_t first_data_point = i - 12 > 0 ? i - 12 : 0;
+    size_t last_data_point = i + 12 < data_fifo.size() ? i - 12 : data_fifo.size();
+
+    double running_min = 100.0f;
+    for (size_t it = first_data_point; it < last_data_point; it++) {
+      if (data_fifo.at(it).curr < running_min)
+        running_min = data_fifo.at(it).curr;
+    }
 
     curr_diff +=
-        this->predict_current(data_it->perf_info, data_it->leech_curr) -
+        this->predict_current(data_fifo.at(i).perf_info, data_fifo.at(i).leech_curr) -
         running_min;
   }
 
