@@ -1,5 +1,6 @@
 #include <csignal>
 #include <cstdio>
+#include <iostream>
 #include <string>
 #include <tuple>
 #include <unistd.h>
@@ -35,7 +36,7 @@ int main(int argc, char **argv) {
                                  system_stats.get_system_info());
 
     if (classify_model.test_model()) {
-      // Latchup detected, do thing
+      std::cout << "error" << std::endl;
     }
 
     // Wait for 5000 seconds

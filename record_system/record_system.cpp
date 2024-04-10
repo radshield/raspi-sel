@@ -292,9 +292,9 @@ perf_data RecordSystem::get_system_info() {
   }
 
   // Output disk read/write rates
-  ret.rd_ios[cpu] =
+  ret.rd_ios =
       (double)(io_stats_curr.rd_ios - io_stats_last.rd_ios) / usecs_elapsed;
-  ret.wr_ios[cpu] =
+  ret.wr_ios =
       (double)(io_stats_curr.wr_ios - io_stats_last.wr_ios) / usecs_elapsed;
 
   // Reset and restart perf counters
