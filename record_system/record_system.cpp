@@ -12,7 +12,7 @@
 #include <sys/time.h>
 
 perf_ptr RecordSystem::init_perf_event(int cpu) {
-  perf_event_attr pea;
+  perf_event_attr pea = {};
   perf_ptr ret;
 
   // Count perf events

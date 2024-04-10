@@ -59,7 +59,6 @@ Model::Model(std::string &load_model) {
 
   std::ifstream input_file(load_model);
 
-  input_file >> this->bias;
   input_file >> this->current_weight;
 
   input_file >> this->perf_weights.rd_ios;
@@ -67,12 +66,14 @@ Model::Model(std::string &load_model) {
 
   for (int i = 0; i < 4; i++) {
     input_file >> this->perf_weights.cpu_freq[i];
-    input_file >> this->perf_weights.cpu_cycles[i];
     input_file >> this->perf_weights.insn_rate[i];
+    input_file >> this->perf_weights.cpu_cycles[i];
     input_file >> this->perf_weights.cache_hit_rate[i];
     input_file >> this->perf_weights.br_miss_rate[i];
     input_file >> this->perf_weights.bus_cycles[i];
   }
+
+  input_file >> this->bias;
 
   input_file.close();
 }

@@ -1,5 +1,6 @@
 #include <csignal>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -16,7 +17,7 @@ void int_handler(int signum) { sentinel = false; }
 int main(int argc, char **argv) {
   std::string model_file;
   std::tuple<double, double> predicted, actual;
-  // int target_pid;
+  uint8_t trigger_count, latchup_count, output;
 
   if (argc != 3) {
     printf("Usage: %s MODEL_FILE\n", argv[0]);
@@ -36,7 +37,20 @@ int main(int argc, char **argv) {
                                  system_stats.get_system_info());
 
     if (classify_model.test_model()) {
-      std::cout << "error" << std::endl;
+      std::ofstream output_file("one_byte_telemetry",
+                                std::ios::out | std::ios::binary);
+
+      output = 0x0;
+
+      latchup_count += 1;
+      if (latchup_count > 0b00001111)
+        latchup_count = 0x1;
+
+      output |= latchup_count & 0b00001111;
+      output |= (trigger_count << 4);
+
+      output_file << output;
+      output_file.close();
     }
 
     // Wait for 5000 seconds
