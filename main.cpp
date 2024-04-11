@@ -27,8 +27,6 @@ inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
                                  system_stats.get_system_info());
 
     if (classify_model.test_model()) {
-      std::ofstream output_file("one_byte_telemetry",
-                                std::ios::out | std::ios::binary);
 
       uint8_t output = 0x0;
 
@@ -39,6 +37,8 @@ inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
       output |= output_data.latchup_count & 0b00001111;
       output |= (output_data.trigger_count << 4);
 
+      std::ofstream output_file("one_byte_telemetry",
+                                std::ios::out | std::ios::binary);
       output_file << output;
       output_file.close();
     }
@@ -83,6 +83,15 @@ int main(int argc, char **argv) {
       output_data.trigger_count += 1;
       if (output_data.trigger_count > 0b00001111)
         output_data.trigger_count = 0x1;
+
+      uint8_t output = 0x0;
+      output |= output_data.latchup_count & 0b00001111;
+      output |= (output_data.trigger_count << 4);
+
+      std::ofstream output_file("one_byte_telemetry",
+                                std::ios::out | std::ios::binary);
+      output_file << output;
+      output_file.close();
 
       latchup_test(classify_model, system_stats, current_stats, output_data);
 
