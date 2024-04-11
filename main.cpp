@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     float usage = active_time / (active_time + idle_time);
 
     // Check if usage is idle
-    if (usage < 0.01f && usage > 0.00f) {
+    if (usage < 0.05f && usage > 0.00f) {
       // Increase trigger count now that idle is detected
       output_data.trigger_count += 1;
       if (output_data.trigger_count > 0b00001111)
