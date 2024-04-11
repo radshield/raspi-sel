@@ -6,18 +6,52 @@
 #include <tuple>
 #include <unistd.h>
 
+#include "CPUSnapshot.h"
 #include "classify.h"
 #include "ina3221.h"
 #include "record_system.h"
 
 static volatile bool sentinel = true;
 
+struct OutputData {
+  uint8_t trigger_count, latchup_count;
+};
+
 void int_handler(int signum) { sentinel = false; }
+
+inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
+                         INA3221 &current_stats, OutputData &output_data) {
+  // Test for 3 seconds and write result to disk
+  for (int i = 0; i < 300; i++) {
+    classify_model.add_datapoint(current_stats.read_currents(),
+                                 system_stats.get_system_info());
+
+    if (classify_model.test_model()) {
+      std::ofstream output_file("one_byte_telemetry",
+                                std::ios::out | std::ios::binary);
+
+      uint8_t output = 0x0;
+
+      output_data.latchup_count += 1;
+      if (output_data.latchup_count > 0b00001111)
+        output_data.latchup_count = 0x1;
+
+      output |= output_data.latchup_count & 0b00001111;
+      output |= (output_data.trigger_count << 4);
+
+      output_file << output;
+      output_file.close();
+    }
+
+    // Wait for 1 millisecond
+    usleep(1000);
+  }
+}
 
 int main(int argc, char **argv) {
   std::string model_file;
   std::tuple<double, double> predicted, actual;
-  uint8_t trigger_count, latchup_count, output;
+  OutputData output_data;
 
   if (argc != 2) {
     printf("Usage: %s MODEL_FILE\n", argv[0]);
@@ -33,28 +67,30 @@ int main(int argc, char **argv) {
   INA3221 current_stats;
 
   while (sentinel) {
-    classify_model.add_datapoint(current_stats.read_currents(),
-                                 system_stats.get_system_info());
+    CPUSnapshot previousSnap;
+    sleep(1);
+    CPUSnapshot curSnap;
 
-    if (classify_model.test_model()) {
-      std::ofstream output_file("one_byte_telemetry",
-                                std::ios::out | std::ios::binary);
+    float active_time =
+        curSnap.GetActiveTimeTotal() - previousSnap.GetActiveTimeTotal();
+    float idle_time =
+        curSnap.GetIdleTimeTotal() - previousSnap.GetIdleTimeTotal();
+    float usage = active_time / (active_time + idle_time);
 
-      output = 0x0;
+    // Check if usage is idle
+    if (usage < 0.01f && usage > 0.00f) {
+      // Increase trigger count now that idle is detected
+      output_data.trigger_count += 1;
+      if (output_data.trigger_count > 0b00001111)
+        output_data.trigger_count = 0x1;
 
-      latchup_count += 1;
-      if (latchup_count > 0b00001111)
-        latchup_count = 0x1;
+      latchup_test(classify_model, system_stats, current_stats, output_data);
 
-      output |= latchup_count & 0b00001111;
-      output |= (trigger_count << 4);
-
-      output_file << output;
-      output_file.close();
+      // Sleep for the next 3 minutes before detecting again
+      sleep(180);
+    } else {
+      sleep(60);
     }
-
-    // Wait for 5000 seconds
-    usleep(5000);
   }
 
   return 0;
