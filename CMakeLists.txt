@@ -19,3 +19,6 @@ target_link_libraries(seelie PUBLIC
 	classify
 	CPUSnapshot
 )
+target_link_options(seelie PUBLIC
+    -static
+)
