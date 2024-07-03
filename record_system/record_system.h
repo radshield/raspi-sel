@@ -60,6 +60,11 @@ private:
    */
   void read_sysfs_file_stat_work(std::string filename);
 
+  /**
+   * Read CPU frequency from /sys/devices/system/cpu/cpu*
+   */
+  void read_cpu_freq();
+
 public:
   /**
    * Initialize perf counters and other file descriptors for system stats

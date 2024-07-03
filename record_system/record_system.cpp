@@ -2,10 +2,10 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 
-#include <cpufreq.h>
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
@@ -208,6 +208,34 @@ void RecordSystem::read_sysfs_file_stat_work(std::string filename) {
   fclose(fp);
 }
 
+void RecordSystem::read_cpu_freq() {
+  FILE *fp;
+
+  if ((fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq",
+                  "r")) == NULL)
+    throw std::runtime_error("Failed to open disk stat file");
+  fscanf(fp, "%u", &perf_events[0].cpu_freq);
+  fclose(fp);
+
+  if ((fp = fopen("/sys/devices/system/cpu/cpu1/cpufreq/scaling_cur_freq",
+                  "r")) == NULL)
+    throw std::runtime_error("Failed to open disk stat file");
+  fscanf(fp, "%u", &perf_events[1].cpu_freq);
+  fclose(fp);
+
+  if ((fp = fopen("/sys/devices/system/cpu/cpu2/cpufreq/scaling_cur_freq",
+                  "r")) == NULL)
+    throw std::runtime_error("Failed to open disk stat file");
+  fscanf(fp, "%u", &perf_events[2].cpu_freq);
+  fclose(fp);
+
+  if ((fp = fopen("/sys/devices/system/cpu/cpu3/cpufreq/scaling_cur_freq",
+                  "r")) == NULL)
+    throw std::runtime_error("Failed to open disk stat file");
+  fscanf(fp, "%u", &perf_events[3].cpu_freq);
+  fclose(fp);
+}
+
 RecordSystem::RecordSystem() {
   // Set up perf events
   for (int i = 0; i < NUM_CPUS; i++)
@@ -241,10 +269,10 @@ perf_data RecordSystem::get_system_info() {
   // Read from perf counters
   for (int cpu = 0; cpu < NUM_CPUS; cpu++)
     ioctl(perf_events[cpu].fd[0], PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP);
+  read_cpu_freq();
 
   // Populate into perf_events fields
   for (int cpu = 0; cpu < NUM_CPUS; cpu++) {
-    perf_events[cpu].cpu_freq = cpufreq_get(cpu);
     read(perf_events[cpu].fd[0], buf, sizeof(buf));
     for (int event = 0; event < rf->nr; event++) {
       if (rf->values[event].id == perf_events[cpu].id[0])
