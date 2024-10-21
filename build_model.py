@@ -84,8 +84,9 @@ if __name__ == "__main__":
 
     df = pd.read_csv(args.input_csv)
 
-    X = df[
-        [
+    pre_df = preprocess_df(df)
+
+    X = pre_df[
             "curr_filt_3",
             "rd_ios_norm",
             "wr_ios_norm",
@@ -113,15 +114,15 @@ if __name__ == "__main__":
             "cache_hit_rate_3",
             "br_miss_rate_3",
             "bus_cycles_3_norm",
-        ]
     ]
     Y = df["curr_filt_2"]
 
     model = LinearRegression(n_jobs=8)
     model.fit(X, Y)
 
-    with open(args.output_file) as f:
+    with open(args.output_file, 'w') as f:
         for coef in model.coef_:
-            f.write(coef)
+            f.write(str(coef))
             f.write('\n')
         f.write(str(model.intercept_))
+
