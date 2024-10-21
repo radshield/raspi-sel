@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
           "1,cache_hit_1,cache_miss_1,br_insns_1,br_miss_1,bus_cycles_1,freq_1,"
           "cpu_cycles_2,insns_2,cache_hit_2,cache_miss_2,br_insns_2,br_miss_2,"
           "bus_cycles_2,freq_2,cpu_cycles_3,insns_3,cache_hit_3,cache_miss_3,"
-          "br_insns_3,br_miss_3,bus_cycles_3,freq_3,rd_ios,wr_ios");
+          "br_insns_3,br_miss_3,bus_cycles_3,freq_3,rd_ios,wr_ios\n");
 
   int runtime = atoi(argv[2]);
 
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
     fprintf(fd, "%ld,",
             (counter.tv_sec - start.tv_sec) * 1000000 +
                 (counter.tv_nsec - start.tv_nsec) / 1000);
-    fprintf(fd, "%f", ch2_amp);
+    fprintf(fd, "%f,", ch2_amp);
     fprintf(fd, "%f", ch3_amp);
     for (int cpu = 0; cpu < sysconf(_SC_NPROCESSORS_ONLN); cpu++) {
       fprintf(fd, ",%llu,%llu,%llu,%llu,%llu,%llu,%llu,%u",
