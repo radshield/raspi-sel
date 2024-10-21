@@ -22,11 +22,12 @@ void int_handler(int signum) { sentinel = false; }
 inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
                          INA3221 &current_stats, OutputData &output_data) {
   // Test for 3 seconds and write result to disk
+  std::cout << "Testing for 3 seconds!" << std::endl;
   for (int i = 0; i < 300; i++) {
     classify_model.add_datapoint(current_stats.read_currents(),
                                  system_stats.get_system_info());
-
     if (classify_model.test_model()) {
+      std::cout << "Potential latchup detected!" << std::endl;
 
       uint8_t output = 0x0;
 
@@ -66,6 +67,12 @@ int main(int argc, char **argv) {
   RecordSystem system_stats;
   INA3221 current_stats;
 
+  // Ensure write of one_byte_telemetry
+  std::ofstream output_file("one_byte_telemetry",
+                            std::ios::out | std::ios::binary);
+  output_file << 0x0;
+  output_file.close();
+
   while (sentinel) {
     CPUSnapshot previousSnap;
     sleep(1);
@@ -79,6 +86,7 @@ int main(int argc, char **argv) {
 
     // Check if usage is idle
     if (usage < 0.05f && usage > 0.00f) {
+      std::cout << "CPU active time low" << std::endl;
       // Increase trigger count now that idle is detected
       output_data.trigger_count += 1;
       if (output_data.trigger_count > 0b00001111)
