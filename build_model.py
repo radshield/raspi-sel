@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     pre_df = preprocess_df(df)
 
-    X = pre_df[
+    X = pre_df[[
             "curr_filt_3",
             "rd_ios_norm",
             "wr_ios_norm",
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             "cache_hit_rate_3",
             "br_miss_rate_3",
             "bus_cycles_3_norm",
-    ]
+    ]]
     Y = df["curr_filt_2"]
 
     model = LinearRegression(n_jobs=8)
