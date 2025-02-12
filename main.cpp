@@ -1,6 +1,7 @@
 #include <csignal>
 #include <cstdio>
 #include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -11,13 +12,9 @@
 #include "ina3221.h"
 #include "record_system.h"
 
-static volatile bool sentinel = true;
-
 struct OutputData {
   uint8_t trigger_count, latchup_count;
 };
-
-void int_handler(int signum) { sentinel = false; }
 
 inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
                          INA3221 &current_stats, OutputData &output_data) {
@@ -34,14 +31,6 @@ inline void latchup_test(Model &classify_model, RecordSystem &system_stats,
       output_data.latchup_count += 1;
       if (output_data.latchup_count > 0b00001111)
         output_data.latchup_count = 0x1;
-
-      output |= output_data.latchup_count & 0b00001111;
-      output |= (output_data.trigger_count << 4);
-
-      std::ofstream output_file("one_byte_telemetry",
-                                std::ios::out | std::ios::binary);
-      output_file << output;
-      output_file.close();
     }
 
     // Wait for 1 millisecond
@@ -53,13 +42,12 @@ int main(int argc, char **argv) {
   std::string model_file;
   std::tuple<double, double> predicted, actual;
   OutputData output_data;
+  char output = 0x0;
 
   if (argc != 2) {
     printf("Usage: %s MODEL_FILE\n", argv[0]);
     return -1;
   }
-
-  signal(SIGINT, int_handler);
 
   model_file = argv[1];
 
@@ -67,50 +55,38 @@ int main(int argc, char **argv) {
   RecordSystem system_stats;
   INA3221 current_stats;
 
-  // Ensure write of one_byte_telemetry
+  if (std::filesystem::exists("one_byte_telemetry")) {
+    // one_byte_telemetry exists, read in latest data
+    std::ifstream output_file("one_byte_telemetry",
+                              std::ios::in | std::ios::binary);
+    output_file.read(&output, 1);
+    output_data.latchup_count = output & 0b00001111;
+    output_data.trigger_count = output >> 4;
+  } else {
+    // Ensure write of one_byte_telemetry
+    std::ofstream output_file("one_byte_telemetry",
+                              std::ios::out | std::ios::binary);
+    output_file << 0x0;
+    output_file.close();
+  }
+
+  // Increase trigger count now that idle is detected
+  output_data.trigger_count += 1;
+  if (output_data.trigger_count > 0b00001111)
+    output_data.trigger_count = 0x1;
+
+  latchup_test(classify_model, system_stats, current_stats, output_data);
+
+  // Format output byte
+  output = 0x0;
+  output |= output_data.latchup_count & 0b00001111;
+  output |= (output_data.trigger_count << 4);
+
+  // Write output byte
   std::ofstream output_file("one_byte_telemetry",
                             std::ios::out | std::ios::binary);
-  output_file << 0x0;
+  output_file << output;
   output_file.close();
-
-  while (sentinel) {
-    CPUSnapshot previousSnap;
-    sleep(1);
-    CPUSnapshot curSnap;
-
-    float active_time =
-        curSnap.GetActiveTimeTotal() - previousSnap.GetActiveTimeTotal();
-    float idle_time =
-        curSnap.GetIdleTimeTotal() - previousSnap.GetIdleTimeTotal();
-    float usage = active_time / (active_time + idle_time);
-
-    // Check if usage is idle
-    if (usage < 0.1f && usage > 0.00f) {
-      std::cout << "CPU active time low" << std::endl;
-      // Increase trigger count now that idle is detected
-      output_data.trigger_count += 1;
-      if (output_data.trigger_count > 0b00001111)
-        output_data.trigger_count = 0x1;
-
-      uint8_t output = 0x0;
-      output |= output_data.latchup_count & 0b00001111;
-      output |= (output_data.trigger_count << 4);
-
-      std::ofstream output_file("one_byte_telemetry",
-                                std::ios::out | std::ios::binary);
-      output_file << output;
-      output_file.close();
-
-      latchup_test(classify_model, system_stats, current_stats, output_data);
-
-      // Sleep for the next 3 minutes before detecting again
-      sleep(180);
-    } else {
-      std::cout << "Only " << usage << " idle" << std::endl;
-      // Check again next minute
-      sleep(60);
-    }
-  }
 
   return 0;
 }
