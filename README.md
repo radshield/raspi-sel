@@ -1,43 +1,37 @@
 # SEL Detection for Commodity Single-Board Computers
 
-This repo stores scratch files for benchmarking and measurement of current draw for the Raspberry Pi Zero 2 W.
+This repo stores a prototype program for detecting radiation-induced latchups on
+the Raspberry Pi Zero 2 W.
 
 ## Requirements
 
-* Python 3.6 or higher with pip
+* Python 3.9 or higher with pip and CPython support
 * virtualenv to keep dependencies separate (optional)
+* CMake
+* Linux with perf and cpufreq support
+* INA3221 connected to the Raspberry Pi through GPIO
 
 ## Setup
 
 ```bash
-virtualenv venv && ./venv/bin/activate
-pip3 install -r requirements.txt
+# Install dependencies
+sudo apt-get install -y libcpupower-dev linux-perf libboost-dev libi2c-dev
+sudo apt-get install -y ninja-build cmake clang
+
+# Build recording tool
+mkdir build && cd build
+CC=clang CXX=clang++ cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+ninja
 ```
 
 ## Usage
 
-Call either `ina169_measurement.py` or `ina3221_measurement.py` depending on which chip is being used to measure current draw. It takes a few arguments:
+A model will first need to be built. This can be done with the included Python
+scripts.
 
-* `--data-rate`: Number of measurements to record per second. This defaults to `100`, and should not exceed the polling rate of the measuring IC
-* The path to one input file, which describes the test(s) to be run. The format is described in the following section.
+Once complete, the prototye can be run from the root directory of the project as
+so:
 
-## Configuration
-
-The layout of a configuration JSON file should look like the following:
-
-```json
-{
-  "runs": [
-    {
-      "commands": [],
-      "run_time": 5
-    }
-  ]
-}
+```bash
+./build/seelie model_to_use
 ```
-
-The `runs` object contains an array of every test to be run. Each element is an object with two attributes:
-
-* `commands` is a set of commands to be executed in parallel. You can leave it black for it to not execute anything
-* `run_time` is a timeout value for the maximum time the above commands get run for, after which the commands are killed and the next set of tests, if any, are started.
-
