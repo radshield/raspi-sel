@@ -9,9 +9,9 @@ bool compare_currs(data_point i, data_point j) { return i.curr < j.curr; }
 
 bool Model::test_model() {
   double curr_diff = 0;
-  for (size_t i = data_fifo.size(); i < data_fifo.size(); i++) {
-    size_t first_data_point = i - 12 > 0 ? i - 12 : 0;
-    size_t last_data_point = i + 12 < data_fifo.size() ? i - 12 : data_fifo.size();
+  for (size_t i = 0; i < data_fifo.size(); i++) {
+    size_t first_data_point = (i >= 12) ? i - 12 : 0;
+    size_t last_data_point = (i + 12 < data_fifo.size()) ? i + 12 : data_fifo.size();
 
     double running_min = 100.0f;
     for (size_t it = first_data_point; it < last_data_point; it++) {
